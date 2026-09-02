@@ -2,7 +2,7 @@
 hotel_booking_app/
 │── assets/                  # Hình ảnh, icon giao diện (PNG, ICO)
 │── config.py                # Cấu hình hệ thống (Chuỗi kết nối CSDL, secret key)
-│── database/                # Khởi tạo CSDL, session, file SQLite (nếu dùng SQLite)
+│── database/                # Khởi tạo CSDL, session,
 │── models/                  # Định nghĩa ORM bằng SQLAlchemy (User, Room, Booking,...)
 │── controllers/             # Logic xử lý nghiệp vụ (Auth, Booking, Check-in, Reports)
 │── views/                   # Giao diện GUI (CustomTkinter / PyQt)
