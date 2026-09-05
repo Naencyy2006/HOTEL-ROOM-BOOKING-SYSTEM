@@ -1,38 +1,43 @@
 HotelRoomBookingSystem/
 │
-├── main.py                         # File chính, khởi động toàn bộ hệ thống
+├── main.py                         # File chạy chính của hệ thống
+├── README.md                       # Mô tả project + hướng dẫn cài đặt/chạy
+├── requirements.txt                # Danh sách thư viện Python cần dùng
+├── .gitignore                      # Các file không đưa lên GitHub
 │
 ├── config/
-│   └── database.py                 # Cấu hình và tạo kết nối đến Database
+│   └── database.py                 # Cấu hình và kết nối Python với Database
 │
 ├── database/
-│   └── schema.sql                  # Tạo Database, các bảng, khóa và ràng buộc
+│   └── schema.sql                  # Tạo Database + 6 bảng + PK/FK/Constraints
 │
-├── models/
-│   ├── user.py                     # Model User: thông tin tài khoản và phân quyền
-│   ├── room.py                     # Model Room: thông tin phòng vật lý
-│   ├── booking.py                  # Model Booking: thông tin đặt phòng
-│   ├── payment.py                  # Model Payment: thông tin thanh toán
-│   └── review.py                   # Model Review: đánh giá và nhận xét của khách
+├── models/                         # Đại diện cho các đối tượng dữ liệu
+│   ├── user.py                     # Model của bảng Users
+│   ├── room_type.py                # Model của bảng RoomTypes
+│   ├── room.py                     # Model của bảng Rooms
+│   ├── booking.py                  # Model của bảng Bookings
+│   ├── payment.py                  # Model của bảng Payments
+│   └── review.py                   # Model của bảng Reviews
 │
-├── services/
-│   ├── auth_service.py             # Xử lý nghiệp vụ đăng ký, đăng nhập, đổi/reset mật khẩu
-│   ├── room_service.py             # Xử lý nghiệp vụ tìm kiếm và quản lý phòng
-│   ├── booking_service.py          # Xử lý nghiệp vụ đặt phòng và lịch sử đặt phòng
-│   ├── payment_service.py          # Xử lý thanh toán và cập nhật trạng thái thanh toán
-│   ├── cancellation_service.py     # Xử lý hủy phòng, phí hủy và tiền hoàn lại
-│   ├── receptionist_service.py     # Xử lý nghiệp vụ của lễ tân
-│   │                               # (walk-in, check-in, check-out, quản lý reservation)
-│   └── admin_service.py            # Xử lý nghiệp vụ quản trị hệ thống
-│                                   # (quản lý user, room, booking, review, report)
+├── services/                       # Xử lý nghiệp vụ của hệ thống
+│   ├── auth_service.py             # Register, Login, Logout, Reset Password
+│   ├── room_service.py             # Tìm kiếm + kiểm tra phòng
+│   ├── booking_service.py          # Đặt phòng + lịch sử booking
+│   ├── payment_service.py          # Xử lý thanh toán + receipt
+│   ├── cancellation_service.py     # Hủy phòng + tính tiền hoàn
+│   ├── receptionist_service.py     # Walk-in, Check-in, Check-out
+│   └── admin_service.py            # Quản lý Rooms, Users, Bookings, Reports
 │
-├── views/
-│   ├── login.py                    # Giao diện đăng nhập, đăng ký và reset mật khẩu
-│   ├── member.py                   # Giao diện dành cho Member/khách hàng
-│   ├── receptionist.py             # Giao diện dành cho Receptionist/lễ tân
-│   └── admin.py                    # Giao diện dành cho Administrator
+├── views/                          # Giao diện/menu người dùng
+│   ├── login.py                    # Giao diện đăng nhập/đăng ký
+│   ├── member.py                   # Menu và giao diện Member
+│   ├── receptionist.py             # Menu và giao diện Receptionist
+│   └── admin.py                    # Menu và giao diện Administrator
 │
-└── utils/
-    ├── validators.py               # Các hàm kiểm tra dữ liệu đầu vào
-    │                               # (email, password, ngày tháng, số điện thoại...)
-    └── password.py                 # Mã hóa/hash và kiểm tra mật khấu
+├── utils/                          # Các chức năng dùng chung
+│   ├── validators.py               # Kiểm tra dữ liệu nhập vào
+│   └── password.py                 # Hash và kiểm tra password
+│
+└── assets/                         # Tài nguyên giao diện
+    ├── images/                     # Hình ảnh ( nếu có)
+    └── icons/                      # Icon (nếu có )
