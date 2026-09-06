@@ -2,8 +2,10 @@ import os
 import mysql.connector
 from mysql.connector import Error
 
-
+# Lớp Database để quản lý kết nối cơ sở dữ liệu MySQL
 class Database:
+
+    # Khởi tạo đối tượng Database với các thông tin kết nối cơ sở dữ liệu
     def __init__(self):
         self.host = os.getenv("DB_HOST", "localhost")   # Lấy địa chỉ host từ biến môi trường DB_HOST, nếu không có thì mặc định là "localhost"
         self.port = int(os.getenv("DB_PORT", "3306"))   # Lấy cổng kết nối từ biến môi trường DB_PORT, nếu không có thì mặc định là 3306

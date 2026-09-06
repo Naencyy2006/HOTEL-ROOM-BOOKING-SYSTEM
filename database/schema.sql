@@ -5,6 +5,7 @@ COLLATE utf8mb4_unicode_ci;
 USE hotel_room_booking;
 
 -- Drop tables in dependency order so the script can be re-run
+-- Xóa các bảng theo thứ tự phụ thuộc để có thể chạy lại script
 DROP TABLE IF EXISTS reviews;
 DROP TABLE IF EXISTS payments;
 DROP TABLE IF EXISTS bookings;
@@ -23,7 +24,7 @@ CREATE TABLE users (
     gender VARCHAR(20),
     year_of_birth INT,
     password_hash VARCHAR(255) NOT NULL,
-    role VARCHAR(30) NOT NULL DEFAULT 'Member',
+    role ENUM('Member', 'Receptionist', 'Admin') NOT NULL DEFAULT 'Member',
     status VARCHAR(30) NOT NULL DEFAULT 'Active',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
