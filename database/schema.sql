@@ -1,4 +1,4 @@
-REATE DATABASE IF NOT EXISTS hotel_room_booking
+CREATE DATABASE IF NOT EXISTS hotel_room_booking
 CHARACTER SET utf8mb4
 COLLATE utf8mb4_unicode_ci;
 
@@ -29,7 +29,8 @@ CREATE TABLE users (
 );
 
 
--- 2. ROOM_TYPES
+
+-- 2. ROOM_TYPES---
 
 CREATE TABLE room_types (
     room_type_id INT AUTO_INCREMENT PRIMARY KEY,
