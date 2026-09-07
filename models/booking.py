@@ -1,4 +1,6 @@
 class Booking:
+
+    # Xác định các trạng thái có thể có của một lượt đặt chỗ.
     STATUSES = [
         "Pending",
         "Confirmed",
@@ -6,7 +8,7 @@ class Booking:
         "Completed",
         "Canceled"
     ]
-
+    # Khởi tạo đối tượng Booking với các thuộc tính
     def __init__(
         self,
         booking_id=None,
@@ -21,9 +23,11 @@ class Booking:
         created_at=None,
         canceled_at=None
     ):
+        # Kiểm tra tính hợp lệ của status
         if status not in self.STATUSES:
             raise ValueError(f"Invalid booking status: {status}")
 
+        # Gán các thuộc tính cho đối tượng Booking
         self.booking_id = booking_id
         self.user_id = user_id
         self.room_id = room_id
@@ -36,6 +40,7 @@ class Booking:
         self.created_at = created_at
         self.canceled_at = canceled_at
 
+    # Phương thức để tạo đối tượng Booking từ một hàng dữ liệu (row) từ cơ sở dữ liệu
     @classmethod
     def from_row(cls, row):
         return cls(
@@ -52,6 +57,7 @@ class Booking:
             canceled_at=row[10]
         )
 
+    # Phương thức để chuyển đổi đối tượng Booking thành một từ điển (dictionary)
     def to_dict(self):
         return {
             "booking_id": self.booking_id,
@@ -67,14 +73,18 @@ class Booking:
             "canceled_at": self.canceled_at
         }
 
+    # Các phương thức kiểm tra trạng thái của lượt đặt chỗ
     def is_confirmed(self):
         return self.status == "Confirmed"
 
+    # Phương thức kiểm tra xem lượt đặt chỗ có đang được sử dụng hay không
     def is_checked_in(self):
         return self.status == "Checked-in"
 
+    # Phương thức kiểm tra xem lượt đặt chỗ có đã hoàn tất hay không
     def is_completed(self):
         return self.status == "Completed"
 
+    # Phương thức kiểm tra xem lượt đặt chỗ có bị hủy hay không
     def is_canceled(self):
         return self.status == "Canceled"

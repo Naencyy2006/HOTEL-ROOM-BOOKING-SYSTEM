@@ -1,5 +1,8 @@
 class User:
+    # Danh sách các vai trò (roles) và trạng thái (statuses) hợp lệ
     ROLES = ["Member", "Receptionist", "Admin"]
+
+    # Danh sách các trạng thái hợp lệ
     STATUSES = ["Active", "Locked", "Inactive"]
 
     # Khởi tạo đối tượng User với các thuộc tính
