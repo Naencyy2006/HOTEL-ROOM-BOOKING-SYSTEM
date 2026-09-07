@@ -2,7 +2,7 @@ class User:
     ROLES = ["Member", "Receptionist", "Admin"]
     STATUSES = ["Active", "Locked", "Inactive"]
 
-    
+    # Khởi tạo đối tượng User với các thuộc tính
     def __init__(
         self,
         user_id=None,
@@ -16,12 +16,15 @@ class User:
         status="Active",
         created_at=None
     ):
+        # Kiểm tra tính hợp lệ của role và status
         if role not in self.ROLES:
             raise ValueError(f"Invalid role: {role}")
 
+        # Kiểm tra tính hợp lệ của status
         if status not in self.STATUSES:
             raise ValueError(f"Invalid status: {status}")
 
+        # Gán các thuộc tính cho đối tượng User
         self.user_id = user_id
         self.full_name = full_name
         self.email = email
@@ -33,6 +36,7 @@ class User:
         self.status = status
         self.created_at = created_at
 
+    # Lớp phương thức để tạo đối tượng User từ một hàng dữ liệu (row) từ cơ sở dữ liệu
     @classmethod
     def from_row(cls, row):
         return cls(
@@ -48,6 +52,7 @@ class User:
             created_at=row[9]
         )
 
+    # Phương thức để chuyển đổi đối tượng User thành một từ điển (dictionary)
     def to_dict(self):
         return {
             "user_id": self.user_id,
@@ -62,14 +67,18 @@ class User:
             "created_at": self.created_at
         }
 
+    # Phương thức kiểm tra xem người dùng có đang hoạt động hay không
     def is_active(self):
         return self.status == "Active"
 
+    # Phương thức kiểm tra xem người dùng có phải là thành viên hay không
     def is_member(self):
         return self.role == "Member"
 
+    # Phương thức kiểm tra xem người dùng có phải là nhân viên lễ tân hay không
     def is_receptionist(self):
         return self.role == "Receptionist"
 
+    # Phương thức kiểm tra xem người dùng có phải là quản trị viên hay không
     def is_admin(self):
         return self.role == "Admin"
