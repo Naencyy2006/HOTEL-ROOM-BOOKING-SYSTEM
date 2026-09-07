@@ -2,7 +2,7 @@ class RoomType:
     def __init__(
         self,
         room_type_id=None,
-        type_name="",
+        type_name=None,
         capacity=1,
         description=None,
         price_per_night=0.0
@@ -15,7 +15,13 @@ class RoomType:
 
     @classmethod
     def from_row(cls, row):
-        return cls(*row)
+        return cls(
+            room_type_id=row[0],
+            type_name=row[1],
+            capacity=row[2],
+            description=row[3],
+            price_per_night=row[4]
+        )
 
     def to_dict(self):
         return {

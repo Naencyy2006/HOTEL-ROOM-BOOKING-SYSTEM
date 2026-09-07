@@ -1,5 +1,6 @@
 class Review:
-    # Khởi tạo đối tượng Review với các thuộc tính
+    STATUSES = ["Published", "Hidden", "Deleted"]
+
     def __init__(
         self,
         review_id=None,
@@ -11,6 +12,12 @@ class Review:
         status="Published",
         review_date=None
     ):
+        if rating < 1 or rating > 5:
+            raise ValueError("Rating must be between 1 and 5")
+
+        if status not in self.STATUSES:
+            raise ValueError(f"Invalid review status: {status}")
+
         self.review_id = review_id
         self.user_id = user_id
         self.room_id = room_id
@@ -20,11 +27,19 @@ class Review:
         self.status = status
         self.review_date = review_date
 
-    @classmethod # Phương thức lớp để tạo đối tượng Review từ một hàng dữ liệu (row) từ cơ sở dữ liệu
+    @classmethod
     def from_row(cls, row):
-        return cls(*row)
+        return cls(
+            review_id=row[0],
+            user_id=row[1],
+            room_id=row[2],
+            booking_id=row[3],
+            rating=row[4],
+            comment=row[5],
+            status=row[6],
+            review_date=row[7]
+        )
 
-    # Phương thức để chuyển đổi đối tượng Review thành dictionary
     def to_dict(self):
         return {
             "review_id": self.review_id,
@@ -36,3 +51,12 @@ class Review:
             "status": self.status,
             "review_date": self.review_date
         }
+
+    def is_published(self):
+        return self.status == "Published"
+
+    def is_hidden(self):
+        return self.status == "Hidden"
+
+    def is_deleted(self):
+        return self.status == "Deleted"

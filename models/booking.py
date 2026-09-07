@@ -1,4 +1,12 @@
 class Booking:
+    STATUSES = [
+        "Pending",
+        "Confirmed",
+        "Checked-in",
+        "Completed",
+        "Canceled"
+    ]
+
     def __init__(
         self,
         booking_id=None,
@@ -13,6 +21,9 @@ class Booking:
         created_at=None,
         canceled_at=None
     ):
+        if status not in self.STATUSES:
+            raise ValueError(f"Invalid booking status: {status}")
+
         self.booking_id = booking_id
         self.user_id = user_id
         self.room_id = room_id
@@ -27,7 +38,19 @@ class Booking:
 
     @classmethod
     def from_row(cls, row):
-        return cls(*row)
+        return cls(
+            booking_id=row[0],
+            user_id=row[1],
+            room_id=row[2],
+            room_type_id=row[3],
+            check_in=row[4],
+            check_out=row[5],
+            total_price=row[6],
+            refund_price=row[7],
+            status=row[8],
+            created_at=row[9],
+            canceled_at=row[10]
+        )
 
     def to_dict(self):
         return {
@@ -43,3 +66,15 @@ class Booking:
             "created_at": self.created_at,
             "canceled_at": self.canceled_at
         }
+
+    def is_confirmed(self):
+        return self.status == "Confirmed"
+
+    def is_checked_in(self):
+        return self.status == "Checked-in"
+
+    def is_completed(self):
+        return self.status == "Completed"
+
+    def is_canceled(self):
+        return self.status == "Canceled"
