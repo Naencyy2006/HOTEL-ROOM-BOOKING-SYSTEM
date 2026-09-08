@@ -1,5 +1,3 @@
-
-
 from datetime import date, datetime
 from services import room_service
 
