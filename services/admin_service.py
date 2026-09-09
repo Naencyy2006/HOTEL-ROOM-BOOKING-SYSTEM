@@ -44,6 +44,7 @@ class AdminService:
         Lấy danh sách toàn bộ user.
         - role: lọc theo vai trò ('Member', 'Receptionist', 'Admin'),
                 None = lấy tất cả.
+        Có thể ném ConnectionError nếu không kết nối được DB -> view bắt lỗi này.
         """
         conn, cursor = None, None
         try:
@@ -161,6 +162,8 @@ class AdminService:
         Xóa user khỏi hệ thống.
         Bookings tham chiếu user_id với ON DELETE RESTRICT nên MySQL sẽ tự
         chặn nếu còn booking bất kỳ (không riêng booking đang hoạt động).
+        Vẫn kiểm tra trước ở đây để trả thông báo tiếng Việt dễ hiểu hơn
+        thay vì để lộ lỗi FOREIGN KEY constraint thô của MySQL.
         """
         conn, cursor = None, None
         try:
@@ -194,6 +197,8 @@ class AdminService:
     # ---------------------------------------------------------
     # 2. QUẢN LÝ LOẠI PHÒNG (ROOM_TYPES)
     # ---------------------------------------------------------
+    # Rooms phụ thuộc room_type_id (giá & mô tả nằm ở đây) nên cần quản lý
+    # trước khi thêm phòng cụ thể.
     def get_all_room_types(self):
         """Lấy danh sách toàn bộ loại phòng."""
         conn, cursor = None, None
