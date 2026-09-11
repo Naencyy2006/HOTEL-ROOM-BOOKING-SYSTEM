@@ -4,95 +4,105 @@ from utils.validators import validate_email, validate_password, validate_phone
 
 class AuthService:
     def __init__(self):
+        # Lưu thông tin phiên đăng nhập của người dùng hiện tại
         self.current_user = None
 
     def register(self, full_name: str, dob: str, gender: str, phone: str, email: str, password: str, confirm_password: str):
-        """Đăng ký tài khoản Member mới[cite: 1]."""
+        # Bước 1: Kiểm tra tính hợp lệ của dữ liệu đầu vào
         if not validate_email(email):
-            return False, "Định dạng Email không hợp lệ."
+            return False, "Invalid email address format."
         if not validate_password(password):
-            return False, "Mật khẩu phải có tối thiểu 6 ký tự[cite: 1]."
+            return False, "Password must be at least 6 characters long."
         if password != confirm_password:
-            return False, "Mật khẩu xác nhận không khớp[cite: 1]."
+            return False, "Password confirmation does not match."
         if not validate_phone(phone):
-            return False, "Số điện thoại không hợp lệ."
+            return False, "Invalid phone number format."
 
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
 
         try:
-            # Kiểm tra trùng lặp email[cite: 1]
+            # Bước 2: Kiểm tra email đã tồn tại trong bảng USERS chưa
             cursor.execute("SELECT user_id FROM USERS WHERE email = %s", (email,))
             if cursor.fetchone():
-                return False, "Email đã được sử dụng trong hệ thống[cite: 1]."
+                return False, "This email is already registered in the system."
 
-            # Mã hóa mật khẩu và lưu người dùng[cite: 1]
+            # Bước 3: Mã hóa mật khẩu
             hashed_pwd = hash_password(password)
-            year_of_birth = int(dob.split('-')[0]) if '-' in dob else None
+            
+            # Trích xuất năm sinh từ chuỗi ngày sinh YYYY-MM-DD
+            year_of_birth = int(dob.split('-')[0]) if '-' in dob and dob.split('-')[0].isdigit() else None
 
+            # Bước 4: Thêm tài khoản Member mới vào CSDL
             query = """
                 INSERT INTO USERS (full_name, email, phone, gender, year_of_birth, password_hash, role, status)
                 VALUES (%s, %s, %s, %s, %s, %s, 'Member', 'Active')
             """
             cursor.execute(query, (full_name, email, phone, gender, year_of_birth, hashed_pwd))
             conn.commit()
-            return True, "Đăng ký tài khoản thành công![cite: 1]"
+            return True, "Account registered successfully!"
+            
         except Exception as e:
             conn.rollback()
-            return False, f"Lỗi hệ thống: {str(e)}"
+            return False, f"Database error occurred: {str(e)}"
         finally:
             cursor.close()
             conn.close()
 
     def login(self, email: str, password: str):
-        """Xác thực người dùng và phân quyền truy cập[cite: 1]."""
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
 
         try:
+            # Lấy thông tin tài khoản theo email
             cursor.execute("SELECT * FROM USERS WHERE email = %s", (email,))
             user = cursor.fetchone()
 
+            # Kiểm tra sự tồn tại tài khoản và xác thực mật khẩu
             if not user or not verify_password(user['password_hash'], password):
-                return False, "Email hoặc mật khẩu không chính xác[cite: 1].", None
+                return False, "Invalid email address or password.", None
 
+            # Kiểm tra xem tài khoản có bị khóa bởi Administrator không
             if user['status'] == 'Locked':
-                return False, "Tài khoản của bạn đã bị khóa do vi phạm chính sách[cite: 1].", None
+                return False, "Your account is locked due to policy violations. Contact support.", None
 
+            # Đăng nhập thành công, lưu thông tin phiên làm việc
             self.current_user = user
-            return True, "Đăng nhập thành công!", user
+            return True, "Login successful!", user
         finally:
             cursor.close()
             conn.close()
 
     def logout(self):
-        """Đăng xuất người dùng khỏi phiên làm việc[cite: 1]."""
+        # Xóa thông tin phiên làm việc hiện tại
         self.current_user = None
-        return True, "Đã đăng xuất thành công."
+        return True, "Logged out successfully."
 
     def reset_password(self, email: str, new_password: str, confirm_password: str):
-        """Khôi phục mật khẩu khi quên[cite: 1]."""
+        # Kiểm tra yêu cầu của mật khẩu mới
         if not validate_password(new_password):
-            return False, "Mật khẩu mới phải có ít nhất 6 ký tự[cite: 1]."
+            return False, "New password must be at least 6 characters long."
         if new_password != confirm_password:
-            return False, "Mật khẩu xác nhận không khớp[cite: 1]."
+            return False, "Password confirmation does not match."
 
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
 
         try:
+            # Kiểm tra xem email đăng ký có tồn tại không
             cursor.execute("SELECT user_id FROM USERS WHERE email = %s", (email,))
             user = cursor.fetchone()
             if not user:
-                return False, "Email không tồn tại trong hệ thống[cite: 1]."
+                return False, "Email address not found."
 
+            # Mã hóa và cập nhật mật khẩu mới
             hashed_pwd = hash_password(new_password)
             cursor.execute("UPDATE USERS SET password_hash = %s WHERE email = %s", (hashed_pwd, email))
             conn.commit()
-            return True, "Đặt lại mật khẩu thành công[cite: 1]."
+            return True, "Password updated successfully."
         except Exception as e:
             conn.rollback()
-            return False, f"Lỗi: {str(e)}"
+            return False, f"Error updating password: {str(e)}"
         finally:
             cursor.close()
             conn.close()
