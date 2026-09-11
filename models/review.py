@@ -1,3 +1,5 @@
+from .review import Review
+
 class Review:
     # Các trạng thái có thể có của đánh giá
     STATUSES = ["Published", "Hidden", "Deleted"]

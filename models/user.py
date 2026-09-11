@@ -1,3 +1,5 @@
+from .user import User
+
 class User:
     # Danh sách các vai trò (roles) và trạng thái (statuses) hợp lệ
     ROLES = ["Member", "Receptionist", "Admin"]

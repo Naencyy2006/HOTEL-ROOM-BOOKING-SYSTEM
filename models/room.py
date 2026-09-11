@@ -1,3 +1,5 @@
+from .room import Room
+
 class Room:
 
     # Danh sách các trạng thái hợp lệ cho phòng

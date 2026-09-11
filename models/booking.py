@@ -1,3 +1,5 @@
+from .booking import Booking
+
 class Booking:
 
     # Xác định các trạng thái có thể có của một lượt đặt chỗ.

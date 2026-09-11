@@ -1,3 +1,5 @@
+from .payment import Payment
+
 class Payment:
     # Các trạng thái thanh toán hợp lệ
     STATUSES = ["Paid", "Failed", "Refunded"]

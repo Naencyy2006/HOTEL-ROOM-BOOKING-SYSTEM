@@ -1,3 +1,5 @@
+from .room_type import RoomType
+
 class RoomType:
 
     # Khởi tạo đối tượng RoomType với các thuộc tính
