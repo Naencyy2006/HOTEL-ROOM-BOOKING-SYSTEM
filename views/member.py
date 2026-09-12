@@ -261,9 +261,33 @@ class MemberDashboard(tk.Frame):
         self.canvas_window = self.canvas.create_window((0, 0), window=self.content, anchor="nw")
         self.canvas.bind("<Configure>", lambda e: self.canvas.itemconfig(self.canvas_window, width=e.width))
 
+        self.canvas.bind("<Enter>", self._enable_mousewheel)
+        self.canvas.bind("<Leave>", self._disable_mousewheel)
+
         self.canvas.configure(yscrollcommand=self.scrollbar.set)
         self.canvas.pack(side="left", fill="both", expand=True, padx=30, pady=20)
         self.scrollbar.pack(side="right", fill="y")
+
+    def _enable_mousewheel(self, _event=None):
+        self.canvas.focus_set()
+        self.canvas.bind_all("<MouseWheel>", self._on_mousewheel)
+        self.canvas.bind_all("<Button-4>", self._on_mousewheel)
+        self.canvas.bind_all("<Button-5>", self._on_mousewheel)
+
+    def _disable_mousewheel(self, _event=None):
+        self.canvas.unbind_all("<MouseWheel>")
+        self.canvas.unbind_all("<Button-4>")
+        self.canvas.unbind_all("<Button-5>")
+
+    def _on_mousewheel(self, event):
+        event_num = getattr(event, "num", None)
+        if event_num == 4:
+            direction = -1
+        elif event_num == 5:
+            direction = 1
+        else:
+            direction = -1 if event.delta > 0 else 1
+        self.canvas.yview_scroll(direction, "units")
 
     def _set_active_tab(self, active_tab_id):
         self.current_tab = active_tab_id
@@ -575,19 +599,19 @@ class MemberDashboard(tk.Frame):
 
         tk.Label(self.content, text="📖 Booking History", bg=COLOR_MAIN_BG, fg=COLOR_TEXT, font=FONT_TITLE).pack(anchor="w", pady=(0, 15))
 
-        history = [
-            b for b in self._get_all_member_bookings()
-            if b["status"] in ("Completed", "Cancelled")
-        ]
+        history = self._get_all_member_bookings()
 
         if not history:
             empty_card = tk.Frame(self.content, bg=COLOR_WHITE, highlightbackground=COLOR_BUTTON, highlightthickness=1, padx=20, pady=30)
             empty_card.pack(fill="x")
-            tk.Label(empty_card, text="There is no completed or cancelled booking history.", bg=COLOR_WHITE, fg=COLOR_TEXT, font=FONT_NORMAL).pack()
+            tk.Label(empty_card, text="There is no booking history.", bg=COLOR_WHITE, fg=COLOR_TEXT, font=FONT_NORMAL).pack()
             return
 
         for b in history:
             self._render_history_card(b)
+
+        self.content.update_idletasks()
+        self.canvas.configure(scrollregion=self.canvas.bbox("all"))
 
     def _render_history_card(self, b):
         card = tk.Frame(self.content, bg=COLOR_WHITE, highlightbackground=COLOR_BUTTON, highlightthickness=1, padx=20, pady=15)
@@ -602,10 +626,18 @@ class MemberDashboard(tk.Frame):
         right_info = tk.Frame(top, bg=COLOR_WHITE)
         right_info.pack(side="right")
 
-        if b["status"] == "Completed":
-            badge_lbl = tk.Label(right_info, text="● Completed", bg=COLOR_SUCCESS_BG, fg=COLOR_SUCCESS, font=FONT_BOLD, padx=8, pady=2)
-        else:
-            badge_lbl = tk.Label(right_info, text="● Cancelled", bg=COLOR_DANGER_BG, fg=COLOR_DANGER, font=FONT_BOLD, padx=8, pady=2)
+        status_styles = {
+            "Completed": ("● Completed", COLOR_SUCCESS_BG, COLOR_SUCCESS),
+            "Cancelled": ("● Cancelled", COLOR_DANGER_BG, COLOR_DANGER),
+            "Confirmed": ("● Confirmed", COLOR_INFO_BG, COLOR_INFO),
+            "Checked-in": ("● Checked-in", COLOR_INFO_BG, COLOR_INFO),
+            "Pending Payment": ("● Pending Payment", COLOR_WARNING_BG, COLOR_WARNING),
+            "Pending": ("● Pending", COLOR_WARNING_BG, COLOR_WARNING),
+        }
+        status_text, status_bg, status_fg = status_styles.get(
+            b["status"], (f"● {b['status']}", COLOR_BUTTON, COLOR_TEXT)
+        )
+        badge_lbl = tk.Label(right_info, text=status_text, bg=status_bg, fg=status_fg, font=FONT_BOLD, padx=8, pady=2)
         badge_lbl.pack(side="right", padx=(10, 0))
 
         tk.Label(right_info, text=f"{b['total_price']:,.0f} VND", bg=COLOR_WHITE, fg=COLOR_TEXT, font=FONT_BOLD).pack(side="right")
@@ -651,11 +683,17 @@ class MemberDashboard(tk.Frame):
     # ============================================================
     def show_profile(self):
         self._set_active_tab("profile")
+
         self._clear_content()
 
-        tk.Label(self.content, text="👤 MY PROFILE", bg=COLOR_MAIN_BG, fg=COLOR_TEXT, font=FONT_TITLE).pack(anchor="w", pady=(0, 15))
-
-        card = tk.Frame(self.content, bg=COLOR_WHITE, highlightbackground=COLOR_BUTTON, highlightthickness=1, padx=25, pady=25)
+        card = tk.Frame(
+            self.content,
+            bg=COLOR_WHITE,
+            highlightbackground=COLOR_BUTTON,
+            highlightthickness=1,
+            padx=25,
+            pady=25,
+        )
         card.pack(fill="x")
 
         top_profile = tk.Frame(card, bg=COLOR_WHITE)
@@ -722,23 +760,36 @@ class MemberDashboard(tk.Frame):
             self.btn_edit_profile.configure(text="💾 Save Changes", bg=COLOR_SUCCESS, activebackground="#1B5E20")
 
             for key, lbl in self._profile_labels.items():
+                row = lbl.grid_info()["row"]
                 lbl.grid_remove()
                 entry = self._profile_entries[key]
-                entry.grid(row=lbl.grid_info()["row"], column=0, sticky="w", pady=(0, 8))
+                entry.grid(row=row, column=0, sticky="w", pady=(0, 8))
         else:
             self._save_profile()
 
     def _save_profile(self):
         updated_data = {}
+
         for key, entry in self._profile_entries.items():
             val = entry.get().strip()
             if key == "year_of_birth":
-                try:
-                    val = int(val)
-                except ValueError:
-                    messagebox.showerror("Error", "Year of birth must be an integer!")
+                if not val.isdigit():
+                    messagebox.showerror("Error", "Year of birth must contain numbers only.")
+                    entry.focus_set()
+                    return
+                val = int(val)
+                current_year = datetime.date.today().year
+                if not 1900 <= val <= current_year:
+                    messagebox.showerror(
+                        "Error",
+                        f"Year of birth must be between 1900 and {current_year}.",
+                    )
+                    entry.focus_set()
                     return
             updated_data[key] = val
+
+        for key, entry in self._profile_entries.items():
+            val = updated_data[key]
             self.user[key] = val
             lbl = self._profile_labels[key]
             lbl.configure(text=str(val))
@@ -903,19 +954,25 @@ class MemberDashboard(tk.Frame):
                 messagebox.showwarning("Notice", "Please enter your review.")
                 return
 
-            if self.conn and review_service and hasattr(review_service, 'add_review'):
-                try:
-                    # Đã bổ sung room_id để truyền đủ theo FK schema.sql
-                    review_service.add_review(
-                        self.conn,
-                        user_id=self.user["user_id"],
-                        room_id=booking.get("room_id") or booking.get("room_number"),
-                        booking_id=booking["booking_id"],
-                        rating=rating_var.get(),
-                        comment=comment
-                    )
-                except Exception as e:
-                    print(f"[Warning] Save review to DB error: {e}")
+            if not self.conn:
+                messagebox.showerror("Review Error", "Database connection is unavailable.", parent=review_win)
+                return
+            if not review_service or not hasattr(review_service, "add_review"):
+                messagebox.showerror("Review Error", "Review service is unavailable.", parent=review_win)
+                return
+
+            try:
+                review_service.add_review(
+                    self.conn,
+                    user_id=self.user["user_id"],
+                    room_id=booking.get("room_id") or booking.get("room_number"),
+                    booking_id=booking["booking_id"],
+                    rating=rating_var.get(),
+                    comment=comment,
+                )
+            except Exception as error:
+                messagebox.showerror("Review Error", f"Could not save your review: {error}", parent=review_win)
+                return
 
             messagebox.showinfo("Thank You!", f"Thank you for rating your stay {rating_var.get()} ⭐!")
             review_win.destroy()

@@ -3,7 +3,7 @@
 
 import tkinter as tk
 from tkinter import ttk, messagebox
-from datetime import datetime
+from datetime import datetime, date, timedelta
 import sys, os
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -41,6 +41,7 @@ class ReceptionistView(tk.Tk):
         # Initialize service instance
         self.service = ReceptionistService()
         self.room_types_map = {}
+        self.room_type_prices = {}
         self.cio_search_results = []  # Lưu kết quả tìm kiếm cho Checkin/Checkout
 
         # Configure Theme and Styling
@@ -198,20 +199,23 @@ class ReceptionistView(tk.Tk):
 
         cursor = connection.cursor(dictionary=True)
         try:
-            cursor.execute("SELECT room_type_id, type_name, price_per_night, max_capacity FROM room_types")
+            cursor.execute("SELECT room_type_id, type_name, price_per_night, capacity FROM room_types")
             room_types = cursor.fetchall()
             
             self.room_types_map.clear()
+            self.room_type_prices.clear()
             combobox_values = []
             
             for rt in room_types:
                 display_str = f"ID {rt['room_type_id']} - {rt['type_name']} ({rt['price_per_night']:,.0f} VND)"
                 self.room_types_map[display_str] = rt['room_type_id']
+                self.room_type_prices[display_str] = float(rt['price_per_night'])
                 combobox_values.append(display_str)
 
             self.cbo_w_roomtype['values'] = combobox_values
             if combobox_values:
                 self.cbo_w_roomtype.current(0)
+                self._refresh_walkin_rooms()
         except Exception as e:
             print(f"Error loading room types: {e}")
         finally:
@@ -371,20 +375,20 @@ class ReceptionistView(tk.Tk):
         self.cbo_w_roomtype = ttk.Combobox(booking_frame, state="readonly", width=26)
         self.cbo_w_roomtype.grid(row=0, column=1, pady=8, padx=(10, 0))
 
-        ttk.Label(booking_frame, text="Room Number (Optional):").grid(row=1, column=0, sticky=tk.W, pady=8)
-        self.txt_w_roomid = ttk.Entry(booking_frame, width=28)
-        self.txt_w_roomid.grid(row=1, column=1, pady=8, padx=(10, 0))
+        ttk.Label(booking_frame, text="Room Number (*):").grid(row=1, column=0, sticky=tk.W, pady=8)
+        self.cbo_w_roomid = ttk.Combobox(booking_frame, state="readonly", width=26)
+        self.cbo_w_roomid.grid(row=1, column=1, pady=8, padx=(10, 0))
 
         ttk.Label(booking_frame, text="Check-in Date (*):").grid(row=2, column=0, sticky=tk.W, pady=8)
-        self.txt_w_checkin = ttk.Entry(booking_frame, width=28)
-        self.txt_w_checkin.grid(row=2, column=1, pady=8, padx=(10, 0))
+        self._build_walkin_date_selector(booking_frame, "checkin", row=2, selected_date=date.today())
 
         ttk.Label(booking_frame, text="Check-out Date (*):").grid(row=3, column=0, sticky=tk.W, pady=8)
-        self.txt_w_checkout = ttk.Entry(booking_frame, width=28)
-        self.txt_w_checkout.grid(row=3, column=1, pady=8, padx=(10, 0))
+        self._build_walkin_date_selector(
+            booking_frame, "checkout", row=3, selected_date=date.today() + timedelta(days=1)
+        )
 
-        ttk.Label(booking_frame, text="Total Price (Optional):").grid(row=4, column=0, sticky=tk.W, pady=8)
-        self.txt_w_price = ttk.Entry(booking_frame, width=28)
+        ttk.Label(booking_frame, text="Total Price:").grid(row=4, column=0, sticky=tk.W, pady=8)
+        self.txt_w_price = ttk.Entry(booking_frame, width=28, state="readonly")
         self.txt_w_price.grid(row=4, column=1, pady=8, padx=(10, 0))
 
         ttk.Label(booking_frame, text="Payment Method:").grid(row=5, column=0, sticky=tk.W, pady=8)
@@ -392,8 +396,94 @@ class ReceptionistView(tk.Tk):
         self.cbo_w_payment.current(0)
         self.cbo_w_payment.grid(row=5, column=1, pady=8, padx=(10, 0))
 
+        self.cbo_w_roomtype.bind("<<ComboboxSelected>>", lambda _event: self._refresh_walkin_rooms())
+
         btn_submit = ttk.Button(container, text="➕ Create Walk-in Booking", style="Primary.TButton", command=self.handle_walkin_booking)
         btn_submit.grid(row=1, column=0, columnspan=2, pady=15, ipadx=25, ipady=6)
+
+    def _build_walkin_date_selector(self, parent, prefix, row, selected_date):
+        date_frame = ttk.Frame(parent)
+        date_frame.grid(row=row, column=1, pady=8, padx=(10, 0), sticky=tk.W)
+
+        year_values = [str(year) for year in range(date.today().year, date.today().year + 3)]
+        selectors = {
+            "day": ("Day", [f"{day:02d}" for day in range(1, 32)], f"{selected_date.day:02d}"),
+            "month": ("Month", [f"{month:02d}" for month in range(1, 13)], f"{selected_date.month:02d}"),
+            "year": ("Year", year_values, str(selected_date.year)),
+        }
+        self.walkin_date_selectors = getattr(self, "walkin_date_selectors", {})
+        self.walkin_date_selectors[prefix] = {}
+
+        for index, (part, (label, values, selected)) in enumerate(selectors.items()):
+            ttk.Label(date_frame, text=label).grid(row=0, column=index * 2, padx=(0 if index == 0 else 5, 2))
+            combo = ttk.Combobox(date_frame, values=values, state="readonly", width=5 if part != "year" else 7)
+            combo.set(selected)
+            combo.grid(row=0, column=index * 2 + 1)
+            combo.bind("<<ComboboxSelected>>", lambda _event: self._refresh_walkin_rooms())
+            self.walkin_date_selectors[prefix][part] = combo
+
+    def _get_walkin_date(self, prefix):
+        selectors = self.walkin_date_selectors[prefix]
+        try:
+            return date(
+                int(selectors["year"].get()),
+                int(selectors["month"].get()),
+                int(selectors["day"].get()),
+            ).isoformat()
+        except (TypeError, ValueError):
+            return ""
+
+    def _update_walkin_total_price(self):
+        """Calculate the walk-in total from selected room type and stay dates."""
+        room_type_text = self.cbo_w_roomtype.get()
+        price_per_night = self.room_type_prices.get(room_type_text)
+        check_in = self._get_walkin_date("checkin")
+        check_out = self._get_walkin_date("checkout")
+        total = ""
+
+        if price_per_night and check_in and check_out:
+            try:
+                nights = (datetime.strptime(check_out, "%Y-%m-%d") - datetime.strptime(check_in, "%Y-%m-%d")).days
+                if nights > 0:
+                    total = f"{nights * price_per_night:,.0f}"
+            except ValueError:
+                pass
+
+        self.txt_w_price.configure(state="normal")
+        self.txt_w_price.delete(0, tk.END)
+        self.txt_w_price.insert(0, total)
+        self.txt_w_price.configure(state="readonly")
+
+    def _refresh_walkin_rooms(self, show_message=False):
+        """Refresh room choices and automatically select the first available room."""
+        self._update_walkin_total_price()
+        room_type_text = self.cbo_w_roomtype.get()
+        check_in = self._get_walkin_date("checkin")
+        check_out = self._get_walkin_date("checkout")
+        room_values = []
+
+        if room_type_text and check_in and check_out:
+            try:
+                d_checkin = datetime.strptime(check_in, "%Y-%m-%d").date()
+                d_checkout = datetime.strptime(check_out, "%Y-%m-%d").date()
+                if d_checkout > d_checkin:
+                    room_type_id = self.room_types_map.get(room_type_text)
+                    rooms = self.service.get_available_rooms(room_type_id, d_checkin, d_checkout)
+                    room_values = [str(room["room_number"]) for room in rooms]
+            except ValueError:
+                pass
+
+        self.cbo_w_roomid["values"] = room_values
+        if room_values:
+            self.cbo_w_roomid.current(0)
+        else:
+            self.cbo_w_roomid.set("")
+            if show_message and room_type_text and check_in and check_out:
+                messagebox.showwarning(
+                    "No rooms available",
+                    f"There are no available rooms for {room_type_text} in the selected dates.",
+                    parent=self,
+                )
 
     def handle_walkin_booking(self):
         """Handle submission for Walk-in guest booking creation with strict input validation"""
@@ -402,8 +492,8 @@ class ReceptionistView(tk.Tk):
         phone = self.txt_w_phone.get().strip()
         raw_yob = self.txt_w_yob.get().strip()
         selected_rt_text = self.cbo_w_roomtype.get()
-        check_in = self.txt_w_checkin.get().strip()
-        check_out = self.txt_w_checkout.get().strip()
+        check_in = self._get_walkin_date("checkin")
+        check_out = self._get_walkin_date("checkout")
         raw_price = self.txt_w_price.get().strip()
 
         if not all([full_name, email, phone, raw_yob, selected_rt_text, check_in, check_out]):
@@ -424,10 +514,20 @@ class ReceptionistView(tk.Tk):
         try:
             year_of_birth = int(raw_yob)
             room_type_id = self.room_types_map.get(selected_rt_text)
-            total_price = float(raw_price) if raw_price else None
+            if room_type_id is None:
+                messagebox.showwarning("Warning", "Please select a valid room type.")
+                return
+            total_price = float(raw_price.replace(",", "")) if raw_price else None
             gender = self.cbo_w_gender.get()
-            room_id = self.txt_w_roomid.get().strip() or None
+            room_id = self.cbo_w_roomid.get().strip() or None
             payment_method = self.cbo_w_payment.get()
+
+            if not payment_method:
+                messagebox.showwarning("Warning", "Please select a payment method.")
+                return
+            if not room_id:
+                self._refresh_walkin_rooms(show_message=True)
+                return
 
             # Call Service layer
             success, message = self.service.create_walkin_booking(
@@ -454,10 +554,18 @@ class ReceptionistView(tk.Tk):
         self.txt_w_email.delete(0, tk.END)
         self.txt_w_phone.delete(0, tk.END)
         self.txt_w_yob.delete(0, tk.END)
-        self.txt_w_roomid.delete(0, tk.END)
-        self.txt_w_checkin.delete(0, tk.END)
-        self.txt_w_checkout.delete(0, tk.END)
+        self.cbo_w_roomid.set("")
+        self.cbo_w_roomid["values"] = []
+        today = date.today()
+        tomorrow = today + timedelta(days=1)
+        for prefix, selected_date in (("checkin", today), ("checkout", tomorrow)):
+            selectors = self.walkin_date_selectors[prefix]
+            selectors["day"].set(f"{selected_date.day:02d}")
+            selectors["month"].set(f"{selected_date.month:02d}")
+            selectors["year"].set(str(selected_date.year))
+        self.txt_w_price.configure(state="normal")
         self.txt_w_price.delete(0, tk.END)
+        self.txt_w_price.configure(state="readonly")
 
     # ==========================================
     # TAB 3: CHECK-IN & CHECK-OUT (TRA CỨU TÊN/SĐỘ)

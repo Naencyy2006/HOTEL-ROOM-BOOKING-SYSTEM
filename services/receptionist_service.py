@@ -11,6 +11,36 @@ class ReceptionistService:
     def __init__(self):
         self.db = db
 
+    def get_available_rooms(self, room_type_id, check_in, check_out):
+        """Return physical rooms available for the selected stay dates."""
+        connection = self.db.get_connection()
+        if not connection:
+            return []
+
+        cursor = connection.cursor(dictionary=True)
+        try:
+            cursor.execute(
+                """
+                SELECT r.room_number
+                FROM rooms r
+                WHERE r.room_type_id = %s
+                                    AND r.status = 'Available'
+                  AND NOT EXISTS (
+                      SELECT 1
+                      FROM bookings b
+                      WHERE b.room_id = r.room_number
+                        AND b.status IN ('Pending Payment', 'Confirmed', 'Checked-in')
+                        AND b.check_in < %s AND b.check_out > %s
+                  )
+                ORDER BY r.room_number
+                """,
+                (room_type_id, check_out, check_in),
+            )
+            return cursor.fetchall()
+        finally:
+            cursor.close()
+            connection.close()
+
     def view_reservations(self, filter_status=None, check_in_date=None, guest_name=None):
         """
         Xem danh sách tất cả booking slips, hỗ trợ lọc theo trạng thái, ngày check-in hoặc tên khách hàng.
@@ -119,7 +149,7 @@ class ReceptionistService:
                 overlap_query = """
                     SELECT booking_id FROM bookings
                     WHERE room_id = %s 
-                      AND status IN ('Confirmed', 'Checked-in')
+                        AND status IN ('Pending Payment', 'Confirmed', 'Checked-in')
                       AND check_in < %s AND check_out > %s
                 """
                 cursor.execute(overlap_query, (room_id, d_out, d_in))
