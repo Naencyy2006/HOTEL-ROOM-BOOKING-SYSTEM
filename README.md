@@ -1,40 +1,48 @@
 HotelRoomBookingSystem/
 │
-├── main.py                         # File chạy chính của hệ thống
-├── README.md                       # Mô tả project + hướng dẫn cài đặt/chạy
-├── requirements.txt                # Danh sách thư viện Python cần dùng
-├── .gitignore                      # Các file không đưa lên GitHub
+├── main.py                         # File chạy chính của hệ thống (Entry point)
+├── README.md                       # Mô tả dự án và hướng dẫn cài đặt/chạy
+├── requirements.txt                # Danh sách thư viện Python phụ thuộc
+├── .gitignore                      # Các file và thư mục bỏ qua, không đưa lên GitHub
 │
-├── config/
+├── config/                         # Thư mục cấu hình hệ thống
 │   └── database.py                 # Cấu hình và kết nối Python với Database
 │
-├── database/
-│   └── schema.sql                  # Tạo Database + 6 bảng + PK/FK/Constraints
+├── database/                       # Thư mục chứa các kịch bản SQL
+│   ├── schema.sql                  # Tạo Database, định nghĩa các bảng và ràng buộc (PK/FK)
+│   └── seed.sql                    # Khởi tạo dữ liệu mẫu ban đầu cho hệ thống
 │
-├── models/                         # Đại diện cho các đối tượng dữ liệu
-│   ├── user.py                     # Model của bảng Users
-│   ├── room_type.py                # Model của bảng RoomTypes
-│   ├── room.py                     # Model của bảng Rooms
-│   ├── booking.py                  # Model của bảng Bookings
-│   ├── payment.py                  # Model của bảng Payments
-│   └── review.py                   # Model của bảng Reviews
+├── docs/                           # Tài liệu phân tích và thiết kế hệ thống
+│   ├── RequirementAndDesignDocument_Group.docx # Tài liệu yêu cầu & thiết kế (File Word)
+│   └── RequirementAndDesignDocument_Group.pdf  # Tài liệu yêu cầu & thiết kế (File PDF)
 │
-├── services/                       # Xử lý nghiệp vụ của hệ thống
-│   ├── auth_service.py             # Register, Login, Logout, Reset Password
-│   ├── room_service.py             # Tìm kiếm + kiểm tra phòng
-│   ├── booking_service.py          # Đặt phòng + lịch sử booking
-│   ├── payment_service.py          # Xử lý thanh toán + receipt
-│   ├── cancellation_service.py     # Hủy phòng + tính tiền hoàn
-│   ├── receptionist_service.py     # Walk-in, Check-in, Check-out
-│   └── admin_service.py            # Quản lý Rooms, Users, Bookings, Reports
+├── models/                         # Tầng Dữ liệu (Data Layer) - Các class đại diện cho bảng
+│   ├── __init__.py                 # Khởi tạo package models
+│   ├── user.py                     # Model đại diện cho bảng Users (Người dùng)
+│   ├── room_type.py                # Model đại diện cho bảng RoomTypes (Loại phòng)
+│   ├── room.py                     # Model đại diện cho bảng Rooms (Phòng)
+│   ├── booking.py                  # Model đại diện cho bảng Bookings (Đơn đặt phòng)
+│   ├── payment.py                  # Model đại diện cho bảng Payments (Thanh toán)
+│   └── review.py                   # Model đại diện cho bảng Reviews (Đánh giá)
 │
-├── views/                          # Giao diện/menu người dùng
-│   ├── login.py                    # Giao diện đăng nhập/đăng ký
-│   ├── member.py                   # Menu và giao diện Member
-│   ├── receptionist.py             # Menu và giao diện Receptionist
-│   └── admin.py                    # Menu và giao diện Administrator
+├── services/                       # Tầng Nghiệp vụ (Business Logic Layer)
+│   ├── admin_service.py            # Quản lý Rooms, Users, Bookings và xuất báo cáo
+│   ├── auth_service.py             # Xử lý Đăng ký, Đăng nhập, Đăng xuất, Đổi mật khẩu
+│   ├── booking_service.py          # Xử lý luồng đặt phòng và quản lý lịch sử đặt phòng
+│   ├── cancellation_service.py    # Xử lý hủy phòng và tính toán số tiền hoàn trả
+│   ├── payment_service.py          # Xử lý giao dịch thanh toán và xuất hóa đơn
+│   ├── receptionist_service.py     # Nghiệp vụ lễ tân: Đặt trực tiếp, Check-in, Check-out
+│   ├── review_service.py           # Quản lý, gửi và hiển thị đánh giá từ khách hàng
+│   ├── room_service.py             # Tìm kiếm, lọc và kiểm tra phòng khả dụng
+│   └── user_service.py             # Cập nhật và quản lý thông tin tài khoản người dùng
 │
-├── utils/                          # Các chức năng dùng chung
-│   ├── validators.py               # Kiểm tra dữ liệu nhập vào
-│   └── password.py                 # Hash và kiểm tra password
-
+├── utils/                          # Thư mục chứa các hàm tiện ích dùng chung
+│   ├── password.py                 # Mã hóa (Hash) và kiểm tra tính hợp lệ của mật khẩu
+│   └── validators.py               # Kiểm tra định dạng dữ liệu đầu vào (Email, SĐT, Ngày...)
+│
+└── views/                          # Tầng Giao diện / Điều hướng người dùng (UI Layer)
+    ├── admin.py                    # Menu và giao diện chức năng dành cho Administrator
+    ├── guest.py                    # Menu và chức năng dành cho Khách vãng lai (Chưa đăng nhập)
+    ├── login.py                    # Giao diện màn hình đăng nhập và đăng ký tài khoản
+    ├── member.py                   # Menu và giao diện dành cho Khách hàng thành viên
+    └── receptionist.py             # Menu và giao diện chức năng dành cho Lễ tân
