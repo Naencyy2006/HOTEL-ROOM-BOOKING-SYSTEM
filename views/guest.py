@@ -3,7 +3,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import date, timedelta, datetime
 
-# Import thư viện chọn ngày (DateEntry)
+# Try to import tkcalendar for date selection; if not available, fallback to simple Entry widgets.
 try:
     from tkcalendar import DateEntry
     HAS_TKCALENDAR = True
@@ -25,6 +25,8 @@ FONT_NORMAL = ("Arial", 9)
 
 
 class GuestView(tk.Frame):
+
+    # Initialize the GuestView frame with parent, database connection, and authentication callback.
     def __init__(self, parent, db_conn=None, on_open_auth=None):
         super().__init__(parent, bg=COLOR_MAIN_BG)
         self.parent = parent
@@ -37,6 +39,7 @@ class GuestView(tk.Frame):
 
         self.search_rooms()
 
+    # Build the header section of the guest view with title and authentication buttons.
     def _build_header(self):
         header = tk.Frame(self, bg=COLOR_ACCENT, pady=12, padx=25)
         header.pack(fill="x")
@@ -63,6 +66,7 @@ class GuestView(tk.Frame):
         )
         btn_register.pack(side="left", padx=5)
 
+    # Build the search panel for filtering available rooms based on check-in/check-out dates, number of guests, and price range.
     def _build_search_panel(self):
         panel = tk.LabelFrame(
             self, text=" FIND YOUR PERFECT ROOM ", bg=COLOR_SIDEBAR,
@@ -106,31 +110,32 @@ class GuestView(tk.Frame):
             self.txt_checkout.insert(0, tomorrow.strftime("%Y-%m-%d"))
         self.txt_checkout.grid(row=1, column=1, padx=5, pady=(2, 10))
 
-        # Số lượng khách
+        # Number of Guests Dropdown
         tk.Label(panel, text="Guests", bg=COLOR_SIDEBAR, font=FONT_BOLD, fg=COLOR_TEXT).grid(row=0, column=2, sticky="w", padx=5)
         self.cbo_guests = ttk.Combobox(panel, values=["1 Guest", "2 Guests", "3 Guests", "4+ Guests"], state="readonly", width=10)
         self.cbo_guests.current(0)
         self.cbo_guests.grid(row=1, column=2, padx=5, pady=(2, 10))
 
-        # Giá tối thiểu
+        # Min Price Entry
         tk.Label(panel, text="Min Price (VND)", bg=COLOR_SIDEBAR, font=FONT_BOLD, fg=COLOR_TEXT).grid(row=0, column=3, sticky="w", padx=5)
         self.txt_min_price = tk.Entry(panel, font=FONT_NORMAL, width=12)
         self.txt_min_price.grid(row=1, column=3, padx=5, pady=(2, 10))
 
-        # Giá tối đa
+        # Max Price Entry
         tk.Label(panel, text="Max Price (VND)", bg=COLOR_SIDEBAR, font=FONT_BOLD, fg=COLOR_TEXT).grid(row=0, column=4, sticky="w", padx=5)
         self.txt_max_price = tk.Entry(panel, font=FONT_NORMAL, width=12)
         self.txt_max_price.grid(row=1, column=4, padx=5, pady=(2, 10))
 
-        # Nút Tìm kiếm
+        # Search Button
         btn_search = tk.Button(
             panel, text="SEARCH ROOMS", command=self.search_rooms,
             bg=COLOR_ACCENT, fg=COLOR_WHITE, font=FONT_BOLD, bd=0, padx=15, pady=5, cursor="hand2"
         )
         btn_search.grid(row=1, column=5, padx=15, pady=(2, 10))
 
+    # Automatically update the minimum check-out date when the check-in date changes, ensuring that check-out is always after check-in.
     def _on_checkin_change(self, event=None):
-        """Tự động cập nhật Check-out tối thiểu khi thay đổi Check-in"""
+        # When the check-in date changes, update the minimum check-out date to be at least one day after the selected check-in date.
         if HAS_TKCALENDAR:
             checkin_date = self.txt_checkin.get_date()
             next_day = checkin_date + timedelta(days=1)
@@ -138,6 +143,7 @@ class GuestView(tk.Frame):
             if self.txt_checkout.get_date() <= checkin_date:
                 self.txt_checkout.set_date(next_day)
 
+    # Build the room display section, showing available room types in a treeview with details like ID, name, capacity, price, and description.
     def _build_room_display(self):
         container = tk.Frame(self, bg=COLOR_MAIN_BG, padx=25)
         container.pack(fill="both", expand=True)
@@ -171,7 +177,7 @@ class GuestView(tk.Frame):
         btn_book.pack(pady=15)
 
     def search_rooms(self):
-        # 1. LẤY NGÀY VÀ KIỂM TRA ĐIỀU KIỆN VALIDATION
+        # Validate the check-in and check-out dates to ensure that the check-out date is after the check-in date.
         try:
             if HAS_TKCALENDAR:
                 checkin_dt = self.txt_checkin.get_date()
@@ -192,13 +198,15 @@ class GuestView(tk.Frame):
             messagebox.showerror("Invalid Date Format", "Please enter valid dates (YYYY-MM-DD).")
             return
 
-        # 2. XÓA DỮ LIỆU BẢNG CŨ VÀ TÌM KIẾM
+        # Clear the current room display before loading new search results.
         for item in self.tree.get_children():
             self.tree.delete(item)
 
+        # Load available room types from the database based on the search criteria, including number of guests and price range.
         if not self.conn:
             return
 
+        # Load available room types from the database based on the search criteria, including number of guests and price range.
         try:
             cursor = self.conn.cursor(dictionary=True)
             query = "SELECT room_type_id, type_name, capacity, price_per_night, description FROM room_types WHERE 1=1"
@@ -234,10 +242,12 @@ class GuestView(tk.Frame):
         except Exception as e:
             print(f"Error loading rooms: {e}")
 
+    # Navigate to the authentication view (login or register) when the user clicks the corresponding button in the header.
     def _goto_auth(self, tab="login"):
         if self.on_open_auth:
             self.on_open_auth(tab)
 
+    # Handle the "Book Now" button click event, prompting the user to log in or register if they are not authenticated before proceeding with the booking process.
     def _handle_book_now(self):
         selected = self.tree.selection()
         if not selected:
