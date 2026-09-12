@@ -232,7 +232,7 @@ class ReceptionistView(tk.Tk):
         ttk.Label(filter_frame, text="Status:").grid(row=0, column=0, padx=(5, 2), pady=5, sticky=tk.W)
         self.cbo_filter_status = ttk.Combobox(
             filter_frame, 
-            values=["All", "Pending Payment", "Confirmed", "Checked-in", "Completed", "Canceled"],
+            values=["All", "Pending Payment", "Confirmed", "Checked-in", "Completed", "Cancelled"],
             state="readonly", width=16
         )
         self.cbo_filter_status.current(0)
@@ -260,7 +260,7 @@ class ReceptionistView(tk.Tk):
         self.tree_reservations.tag_configure("Confirmed", background="#BBF7D0", foreground="#14532D")
         self.tree_reservations.tag_configure("Checked-in", background="#BFDBFE", foreground="#1E3A8A")
         self.tree_reservations.tag_configure("Completed", background="#E2E8F0", foreground="#334155")
-        self.tree_reservations.tag_configure("Canceled", background="#FECDD3", foreground="#881337")
+        self.tree_reservations.tag_configure("Cancelled", background="#FECDD3", foreground="#881337")
 
         headers = {
             "booking_id": "Booking ID",

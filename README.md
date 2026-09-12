@@ -13,7 +13,6 @@ HotelRoomBookingSystem/
 │   └── seed.sql                    # Khởi tạo dữ liệu mẫu ban đầu cho hệ thống
 │
 ├── docs/                           # Tài liệu phân tích và thiết kế hệ thống
-│   ├── RequirementAndDesignDocument_Group.docx # Tài liệu yêu cầu & thiết kế (File Word)
 │   └── RequirementAndDesignDocument_Group.pdf  # Tài liệu yêu cầu & thiết kế (File PDF)
 │
 ├── models/                         # Tầng Dữ liệu (Data Layer) - Các class đại diện cho bảng
