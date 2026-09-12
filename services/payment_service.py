@@ -26,14 +26,14 @@ def process_payment(conn, booking_id: int, method: str) -> dict:
     """
     booking = booking_service.get_booking(conn, booking_id)
     if booking is None:
-        raise PaymentError("Không tìm thấy booking.")
+        raise PaymentError("Booking not found.")
     if booking["status"] != "Pending Payment":
-        raise PaymentError("Booking không ở trạng thái chờ thanh toán.")
+        raise PaymentError("Booking is not awaiting payment.")
 
     amount = booking["total_price"]
     result = _call_payment_gateway(amount, method)
     if not result["success"]:
-        raise PaymentError("Thanh toán thất bại, vui lòng thử lại.")
+        raise PaymentError("Payment failed. Please try again.")
 
     cursor = conn.cursor()
     cursor.execute(

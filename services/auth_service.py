@@ -1,4 +1,4 @@
-from config.database import get_db_connection
+from config.database import db
 from utils.password import hash_password, verify_password
 from utils.validators import validate_email, validate_password, validate_phone
 
@@ -18,7 +18,9 @@ class AuthService:
         if not validate_phone(phone):
             return False, "Invalid phone number format."
 
-        conn = get_db_connection()
+        conn = db.get_connection()
+        if not conn:
+            return False, "Database connection error."
         cursor = conn.cursor(dictionary=True)
 
         try:
@@ -50,7 +52,9 @@ class AuthService:
             conn.close()
 
     def login(self, email: str, password: str):
-        conn = get_db_connection()
+        conn = db.get_connection()
+        if not conn:
+            return False, "Database connection error.", None
         cursor = conn.cursor(dictionary=True)
 
         try:
@@ -79,23 +83,25 @@ class AuthService:
         return True, "Logged out successfully."
 
     def reset_password(self, email: str, new_password: str, confirm_password: str):
-        # Kiểm tra yêu cầu của mật khẩu mới
+        # Validate the new password requirements.
         if not validate_password(new_password):
             return False, "New password must be at least 6 characters long."
         if new_password != confirm_password:
             return False, "Password confirmation does not match."
 
-        conn = get_db_connection()
+        conn = db.get_connection()
+        if not conn:
+            return False, "Database connection error."
         cursor = conn.cursor(dictionary=True)
 
         try:
-            # Kiểm tra xem email đăng ký có tồn tại không
+            # Check whether the email exists.
             cursor.execute("SELECT user_id FROM USERS WHERE email = %s", (email,))
             user = cursor.fetchone()
             if not user:
                 return False, "Email address not found."
 
-            # Mã hóa và cập nhật mật khẩu mới
+            # Hash and update the new password.
             hashed_pwd = hash_password(new_password)
             cursor.execute("UPDATE USERS SET password_hash = %s WHERE email = %s", (hashed_pwd, email))
             conn.commit()

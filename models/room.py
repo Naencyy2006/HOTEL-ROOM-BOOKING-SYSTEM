@@ -2,10 +2,10 @@ from .room import Room
 
 class Room:
 
-    # Danh sách các trạng thái hợp lệ cho phòng
+    # Valid room statuses.
     STATUSES = ["Available", "Occupied", "Maintenance"]
 
-    # Khởi tạo đối tượng Room với các thuộc tính
+    # Initialize a Room object with its attributes.
     def __init__(
         self,
         room_number=None,
@@ -13,18 +13,18 @@ class Room:
         floor=1,
         status="Available"
     ):
-        # Kiểm tra tính hợp lệ của status
+        # Validate the room status.
         if status not in self.STATUSES:
             raise ValueError(f"Invalid room status: {status}")
 
-        # Gán các thuộc tính cho đối tượng Room
+        # Assign the attributes to the Room object.
         self.room_number = room_number
         self.room_type_id = room_type_id
         self.floor = floor
         self.status = status
 
     @classmethod
-    # Phương thức để tạo đối tượng Room từ một hàng dữ liệu (row) từ cơ sở dữ liệu
+    # Create a Room object from a database row.
     def from_row(cls, row):
         return cls(
             room_number=row[0],
@@ -32,7 +32,7 @@ class Room:
             floor=row[2],
             status=row[3]
         )
-    # Phương thức để chuyển đổi đối tượng Room thành một từ điển (dictionary)
+    # Convert the Room object to a dictionary.
     def to_dict(self):
         return {
             "room_number": self.room_number,
@@ -41,14 +41,14 @@ class Room:
             "status": self.status
         }
 
-    # Phương thức kiểm tra xem phòng có sẵn hay không
+    # Check whether the room is available.
     def is_available(self):
         return self.status == "Available"
 
-    # Phương thức kiểm tra xem phòng có đang được sử dụng hay không
+    # Check whether the room is occupied.
     def is_occupied(self):
         return self.status == "Occupied"
 
-    # Phương thức kiểm tra xem phòng có đang bảo trì hay không
+    # Check whether the room is under maintenance.
     def is_maintenance(self):
         return self.status == "Maintenance"

@@ -2,18 +2,18 @@ import os
 import mysql.connector
 from mysql.connector import Error
 
-# Lớp Database để quản lý kết nối cơ sở dữ liệu MySQL
+# Database class for managing MySQL database connections.
 class Database:
 
-    # Khởi tạo đối tượng Database với các thông tin kết nối cơ sở dữ liệu
+    # Initialize the Database object with database connection settings.
     def __init__(self):
-        self.host = os.getenv("DB_HOST", "localhost")   # Lấy địa chỉ host từ biến môi trường DB_HOST, nếu không có thì mặc định là "localhost"
-        self.port = int(os.getenv("DB_PORT", "3306"))   # Lấy cổng kết nối từ biến môi trường DB_PORT, nếu không có thì mặc định là 3306
-        self.database = os.getenv("DB_NAME", "hotel_room_booking") # Lấy tên cơ sở dữ liệu từ biến môi trường DB_NAME, nếu không có thì mặc định là "hotel_room_booking"
-        self.user = os.getenv("DB_USER", "root")        # Lấy tên người dùng từ biến môi trường DB_USER, nếu không có thì mặc định là "root"
-        self.password = os.getenv("DB_PASSWORD", "")    # Lấy mật khẩu từ biến môi trường DB_PASSWORD, nếu không có thì mặc định là chuỗi rỗng
+        self.host = os.getenv("DB_HOST", "localhost")   # Read the host from DB_HOST, defaulting to "localhost".
+        self.port = int(os.getenv("DB_PORT", "3306"))   # Read the port from DB_PORT, defaulting to 3306.
+        self.database = os.getenv("DB_NAME", "hotel_room_booking") # Read the database name from DB_NAME.
+        self.user = os.getenv("DB_USER", "root")        # Read the username from DB_USER, defaulting to "root".
+        self.password = os.getenv("DB_PASSWORD", "")    # Read the password from DB_PASSWORD, defaulting to an empty string.
 
-    # Phương thức để tạo kết nối đến cơ sở dữ liệu MySQL
+    # Create a connection to the MySQL database.
     def get_connection(self):
         try:
             connection = mysql.connector.connect(
@@ -24,32 +24,32 @@ class Database:
                 password=self.password
             )
 
-            # Kiểm tra xem kết nối có thành công hay không
+            # Check whether the connection was established successfully.
             if connection.is_connected():
                 return connection
-
+            
             return None
 
-        # Xử lý lỗi kết nối cơ sở dữ liệu
+        # Handle database connection errors.
         except Error as e:
             print(f"Database connection error: {e}")
             return None
 
-    # Phương thức để kiểm tra kết nối cơ sở dữ liệu
+    # Test the database connection.
     def test_connection(self):
         connection = self.get_connection()
 
-        # Kiểm tra xem kết nối có thành công hay không
+        # Close the connection after a successful test.
         if connection:
             connection.close()
             return True
 
         return False
 
-# Tạo một đối tượng Database để sử dụng trong ứng dụng
+# Create a Database instance for use throughout the application.
 db = Database()
 
-# Kiểm tra kết nối cơ sở dữ liệu khi chạy trực tiếp file này
+# Test the database connection when this file is run directly.
 if __name__ == "__main__":
     if db.test_connection():
         print("Database connection successful!")

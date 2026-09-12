@@ -1,13 +1,13 @@
 from .user import User
 
 class User:
-    # Danh sách các vai trò (roles) và trạng thái (statuses) hợp lệ
+    # Valid user roles.
     ROLES = ["Member", "Receptionist", "Admin"]
 
-    # Danh sách các trạng thái hợp lệ
+    # Valid user statuses.
     STATUSES = ["Active", "Locked", "Inactive"]
 
-    # Khởi tạo đối tượng User với các thuộc tính
+    # Initialize a User object with its attributes.
     def __init__(
         self,
         user_id=None,
@@ -21,15 +21,15 @@ class User:
         status="Active",
         created_at=None
     ):
-        # Kiểm tra tính hợp lệ của role và status
+        # Validate the role and status.
         if role not in self.ROLES:
             raise ValueError(f"Invalid role: {role}")
 
-        # Kiểm tra tính hợp lệ của status
+        # Validate the user status.
         if status not in self.STATUSES:
             raise ValueError(f"Invalid status: {status}")
 
-        # Gán các thuộc tính cho đối tượng User
+        # Assign the attributes to the User object.
         self.user_id = user_id
         self.full_name = full_name
         self.email = email
@@ -41,7 +41,7 @@ class User:
         self.status = status
         self.created_at = created_at
 
-    # Lớp phương thức để tạo đối tượng User từ một hàng dữ liệu (row) từ cơ sở dữ liệu
+    # Create a User object from a database row.
     @classmethod
     def from_row(cls, row):
         return cls(
@@ -57,7 +57,7 @@ class User:
             created_at=row[9]
         )
 
-    # Phương thức để chuyển đổi đối tượng User thành một từ điển (dictionary)
+    # Convert the User object to a dictionary.
     def to_dict(self):
         return {
             "user_id": self.user_id,
@@ -72,18 +72,18 @@ class User:
             "created_at": self.created_at
         }
 
-    # Phương thức kiểm tra xem người dùng có đang hoạt động hay không
+    # Check whether the user is active.
     def is_active(self):
         return self.status == "Active"
 
-    # Phương thức kiểm tra xem người dùng có phải là thành viên hay không
+    # Check whether the user is a member.
     def is_member(self):
         return self.role == "Member"
 
-    # Phương thức kiểm tra xem người dùng có phải là nhân viên lễ tân hay không
+    # Check whether the user is a receptionist.
     def is_receptionist(self):
         return self.role == "Receptionist"
 
-    # Phương thức kiểm tra xem người dùng có phải là quản trị viên hay không
+    # Check whether the user is an administrator.
     def is_admin(self):
         return self.role == "Admin"

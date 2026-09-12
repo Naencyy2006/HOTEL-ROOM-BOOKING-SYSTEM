@@ -39,27 +39,27 @@ def cancel_booking(conn, booking_id: int) -> dict:
       1. Kiểm tra booking đang Confirmed & đã Paid.
       2. Kiểm tra còn được phép huỷ (chưa qua check-in).
       3. Tính tiền hoàn theo chính sách.
-      4. Cập nhật booking -> Cancelled, trả phòng -> Available.
+      4. Cập nhật booking -> Canceled, trả phòng -> Available.
       5. Gọi payment_service.process_refund() nếu có hoàn tiền.
     """
     booking = booking_service.get_booking(conn, booking_id)
     if booking is None:
-        raise CancellationError("Không tìm thấy booking.")
+        raise CancellationError("Booking not found.")
     if booking["status"] != "Confirmed":
-        raise CancellationError("Chỉ có thể huỷ booking đang ở trạng thái Confirmed.")
+        raise CancellationError("Only confirmed bookings can be cancelled.")
 
     now = datetime.now()
     check_in_dt = datetime.combine(booking["check_in"], datetime.min.time())
     if now >= check_in_dt:
-        raise CancellationError("Không thể huỷ sau ngày check-in.")
+        raise CancellationError("A booking cannot be cancelled after check-in.")
 
     refund_info = calculate_refund(booking["total_price"], check_in_dt, now)
 
     cursor = conn.cursor()
     cursor.execute(
         """
-        UPDATE booking
-        SET status = 'Cancelled', refund_price = %s, cancelled_at = %s
+        UPDATE bookings
+        SET status = 'Canceled', refund_price = %s, canceled_at = %s
         WHERE booking_id = %s
         """,
         (refund_info["refund_amount"], now, booking_id),
@@ -68,8 +68,11 @@ def cancel_booking(conn, booking_id: int) -> dict:
     cursor.close()
 
     # Trả phòng vật lý (nếu đã gán room_number ở bước check-in) về Available
-    if booking.get("room_number"):
-        room_service.release_room(conn, booking["room_number"])
+    # if booking.get("room_number"):
+    #     room_service.release_room(conn, booking["room_number"])
+
+    if booking.get("room_id"):
+        room_service.release_room(conn, booking["room_id"])
 
     # Ghi nhận hoàn tiền
     payment = payment_service.get_payment_by_booking(conn, booking_id)
@@ -78,6 +81,6 @@ def cancel_booking(conn, booking_id: int) -> dict:
 
     return {
         "booking_id": booking_id,
-        "status": "Cancelled",
+        "status": "Canceled",
         **refund_info,
     }

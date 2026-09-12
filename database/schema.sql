@@ -4,8 +4,7 @@ COLLATE utf8mb4_unicode_ci;
 
 USE hotel_room_booking;
 
--- Drop tables in dependency order so the script can be re-run
--- Xóa các bảng theo thứ tự phụ thuộc để có thể chạy lại script
+-- Drop tables in dependency order so the script can be rerun.
 DROP TABLE IF EXISTS reviews;
 DROP TABLE IF EXISTS payments;
 DROP TABLE IF EXISTS bookings;

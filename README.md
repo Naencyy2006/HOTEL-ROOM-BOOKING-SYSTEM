@@ -37,7 +37,4 @@ HotelRoomBookingSystem/
 ├── utils/                          # Các chức năng dùng chung
 │   ├── validators.py               # Kiểm tra dữ liệu nhập vào
 │   └── password.py                 # Hash và kiểm tra password
-│
-└── assets/                         # Tài nguyên giao diện
-    ├── images/                     # Hình ảnh ( nếu có)
-    └── icons/                      # Icon (nếu có )
+

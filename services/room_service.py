@@ -24,7 +24,7 @@ def get_available_count(conn, room_type_id: int, check_in: date, check_out: date
 
     cursor.execute(
         """
-        SELECT COUNT(*) FROM booking
+        SELECT COUNT(*) FROM bookings
         WHERE room_type_id = %s
           AND status IN ('Pending Payment', 'Confirmed', 'Checked-in')
           AND check_in < %s AND check_out > %s
@@ -58,13 +58,24 @@ def update_room_status(conn, room_number: str, new_status: str) -> bool:
     return updated
 
 
-def release_room(conn, room_number: str) -> bool:
-    """
-    Tương ứng Room.releaseRoom(): void.
-    Gọi khi huỷ booking / check-out xong -> trả phòng về 'Available'.
-    """
-    return update_room_status(conn, room_number, "Available")
+# def release_room(conn, room_number: str) -> bool:
+#     """
+#     Tương ứng Room.releaseRoom(): void.
+#     Gọi khi huỷ booking / check-out xong -> trả phòng về 'Available'.
+#     """
+#     return update_room_status(conn, room_number, "Available")
 
+def release_room(conn, room_number: str) -> bool:
+    """Giải phóng phòng về trạng thái Available dựa trên số phòng."""
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE rooms SET status = 'Available' WHERE room_number = %s",
+        (room_number,)
+    )
+    conn.commit()
+    updated = cursor.rowcount > 0
+    cursor.close()
+    return updated
 
 def get_room_type_info(conn, room_type_id: int):
     """Lấy thông tin room_type (giá/đêm, sức chứa, mô tả...) để tính tổng tiền."""

@@ -1,17 +1,3 @@
-"""
-services/admin_service.py
---------------------------
-Xử lý các nghiệp vụ dành cho ADMINISTRATOR:
-    - Quản lý người dùng (users)
-    - Quản lý loại phòng (room_types)
-    - Quản lý phòng (rooms)
-    - Quản lý đặt phòng (bookings)
-    - Quản lý đánh giá (reviews)
-    - Thống kê / báo cáo (report)
-
-Người phụ trách : Lý Tuấn Đạt
-Deadline        : 08/09
-"""
 
 from config.database import db
 
@@ -97,7 +83,7 @@ class AdminService:
         """
         valid_roles = ("Member", "Receptionist", "Admin")
         if new_role not in valid_roles:
-            return False, "Vai trò không hợp lệ."
+            return False, "Invalid role."
 
         conn, cursor = None, None
         try:
@@ -109,14 +95,14 @@ class AdminService:
             )
             conn.commit()
             if cursor.rowcount == 0:
-                return False, "Không tìm thấy user."
-            return True, "Cập nhật vai trò thành công."
+                return False, "User not found."
+            return True, "Role updated successfully."
         except ConnectionError as e:
             return False, str(e)
         except Exception as e:
             if conn:
                 conn.rollback()
-            return False, f"Lỗi khi cập nhật: {e}"
+            return False, f"Update error: {e}"
         finally:
             if cursor:
                 cursor.close()
@@ -143,14 +129,14 @@ class AdminService:
             )
             conn.commit()
             if cursor.rowcount == 0:
-                return False, "Không tìm thấy user."
-            return True, f"Đã đổi trạng thái user sang '{status}'."
+                return False, "User not found."
+            return True, f"User status changed to '{status}'."
         except ConnectionError as e:
             return False, str(e)
         except Exception as e:
             if conn:
                 conn.rollback()
-            return False, f"Lỗi khi cập nhật trạng thái: {e}"
+            return False, f"Status update error: {e}"
         finally:
             if cursor:
                 cursor.close()
@@ -175,19 +161,19 @@ class AdminService:
             )
             (total_bookings,) = cursor.fetchone()
             if total_bookings > 0:
-                return False, "Không thể xóa: user đã có lịch sử booking trong hệ thống."
+                return False, "Cannot delete: the user has booking history in the system."
 
             cursor.execute("DELETE FROM users WHERE user_id = %s", (user_id,))
             conn.commit()
             if cursor.rowcount == 0:
-                return False, "Không tìm thấy user."
-            return True, "Xóa user thành công."
+                return False, "User not found."
+            return True, "User deleted successfully."
         except ConnectionError as e:
             return False, str(e)
         except Exception as e:
             if conn:
                 conn.rollback()
-            return False, f"Lỗi khi xóa user: {e}"
+            return False, f"Delete error: {e}"
         finally:
             if cursor:
                 cursor.close()
@@ -228,13 +214,13 @@ class AdminService:
                 (type_name, capacity, description, price_per_night)
             )
             conn.commit()
-            return True, "Thêm loại phòng thành công."
+            return True, "Room type added successfully."
         except ConnectionError as e:
             return False, str(e)
         except Exception as e:
             if conn:
                 conn.rollback()
-            return False, f"Lỗi khi thêm loại phòng (có thể trùng tên): {e}"
+            return False, f"Error adding room type (the name may already exist): {e}"
         finally:
             if cursor:
                 cursor.close()
@@ -259,7 +245,7 @@ class AdminService:
             values.append(description)
 
         if not fields:
-            return False, "Không có dữ liệu nào để cập nhật."
+                return False, "There is no data to update."
 
         values.append(room_type_id)
         conn, cursor = None, None
@@ -272,14 +258,14 @@ class AdminService:
             )
             conn.commit()
             if cursor.rowcount == 0:
-                return False, "Không tìm thấy loại phòng."
-            return True, "Cập nhật loại phòng thành công."
+                return False, "Room type not found."
+            return True, "Room type updated successfully."
         except ConnectionError as e:
             return False, str(e)
         except Exception as e:
             if conn:
                 conn.rollback()
-            return False, f"Lỗi khi cập nhật loại phòng: {e}"
+            return False, f"Room type update error: {e}"
         finally:
             if cursor:
                 cursor.close()
@@ -302,19 +288,19 @@ class AdminService:
             )
             (total_rooms,) = cursor.fetchone()
             if total_rooms > 0:
-                return False, "Không thể xóa: vẫn còn phòng thuộc loại này."
+                return False, "Cannot delete: rooms of this type still exist."
 
             cursor.execute("DELETE FROM room_types WHERE room_type_id = %s", (room_type_id,))
             conn.commit()
             if cursor.rowcount == 0:
-                return False, "Không tìm thấy loại phòng."
-            return True, "Xóa loại phòng thành công."
+                return False, "Room type not found."
+            return True, "Room type deleted successfully."
         except ConnectionError as e:
             return False, str(e)
         except Exception as e:
             if conn:
                 conn.rollback()
-            return False, f"Lỗi khi xóa loại phòng: {e}"
+            return False, f"Room type deletion error: {e}"
         finally:
             if cursor:
                 cursor.close()
@@ -356,13 +342,13 @@ class AdminService:
                 (room_number, room_type_id, floor)
             )
             conn.commit()
-            return True, "Thêm phòng thành công."
+            return True, "Room added successfully."
         except ConnectionError as e:
             return False, str(e)
         except Exception as e:
             if conn:
                 conn.rollback()
-            return False, f"Lỗi khi thêm phòng (có thể trùng số phòng hoặc sai loại phòng): {e}"
+            return False, f"Error adding room (the room number may already exist or the room type is invalid): {e}"
         finally:
             if cursor:
                 cursor.close()
@@ -386,7 +372,7 @@ class AdminService:
             values.append(status)
 
         if not fields:
-            return False, "Không có dữ liệu nào để cập nhật."
+                return False, "There is no data to update."
 
         values.append(room_number)
         conn, cursor = None, None
@@ -399,14 +385,14 @@ class AdminService:
             )
             conn.commit()
             if cursor.rowcount == 0:
-                return False, "Không tìm thấy phòng."
-            return True, "Cập nhật phòng thành công."
+                return False, "Room not found."
+            return True, "Room updated successfully."
         except ConnectionError as e:
             return False, str(e)
         except Exception as e:
             if conn:
                 conn.rollback()
-            return False, f"Lỗi khi cập nhật phòng: {e}"
+            return False, f"Room update error: {e}"
         finally:
             if cursor:
                 cursor.close()
@@ -430,19 +416,19 @@ class AdminService:
             )
             (total_bookings,) = cursor.fetchone()
             if total_bookings > 0:
-                return False, "Không thể xóa: phòng đã có lịch sử booking."
+                return False, "Cannot delete: the room has booking history."
 
             cursor.execute("DELETE FROM rooms WHERE room_number = %s", (room_number,))
             conn.commit()
             if cursor.rowcount == 0:
-                return False, "Không tìm thấy phòng."
-            return True, "Xóa phòng thành công."
+                return False, "Room not found."
+            return True, "Room deleted successfully."
         except ConnectionError as e:
             return False, str(e)
         except Exception as e:
             if conn:
                 conn.rollback()
-            return False, f"Lỗi khi xóa phòng: {e}"
+            return False, f"Room deletion error: {e}"
         finally:
             if cursor:
                 cursor.close()
@@ -524,20 +510,20 @@ class AdminService:
             conn = self._connect()
             cursor = conn.cursor()
             cursor.execute(
-                "UPDATE bookings SET status = 'Cancelled', canceled_at = NOW() "
+                "UPDATE bookings SET status = 'Canceled', canceled_at = NOW() "
                 "WHERE booking_id = %s",
                 (booking_id,)
             )
             conn.commit()
             if cursor.rowcount == 0:
                 return False, "Không tìm thấy booking."
-            return True, f"Đã hủy booking #{booking_id}. Lý do: {reason or 'không nêu rõ'}."
+                return True, f"Booking #{booking_id} cancelled. Reason: {reason or 'not specified'}."
         except ConnectionError as e:
             return False, str(e)
         except Exception as e:
             if conn:
                 conn.rollback()
-            return False, f"Lỗi khi hủy booking: {e}"
+            return False, f"Booking cancellation error: {e}"
         finally:
             if cursor:
                 cursor.close()
@@ -616,14 +602,14 @@ class AdminService:
             cursor.execute("DELETE FROM reviews WHERE review_id = %s", (review_id,))
             conn.commit()
             if cursor.rowcount == 0:
-                return False, "Không tìm thấy đánh giá."
-            return True, "Xóa đánh giá thành công."
+                return False, "Review not found."
+            return True, "Review deleted successfully."
         except ConnectionError as e:
             return False, str(e)
         except Exception as e:
             if conn:
                 conn.rollback()
-            return False, f"Lỗi khi xóa đánh giá: {e}"
+            return False, f"Review deletion error: {e}"
         finally:
             if cursor:
                 cursor.close()
@@ -688,7 +674,7 @@ class AdminService:
                 "FROM rooms r "
                 "JOIN room_types rt ON r.room_type_id = rt.room_type_id "
                 "LEFT JOIN bookings b "
-                "ON r.room_number = b.room_id AND b.status != 'Cancelled' "
+                "ON r.room_number = b.room_id AND b.status != 'Canceled' "
                 "GROUP BY r.room_number "
                 "ORDER BY total_bookings DESC"
             )

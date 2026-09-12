@@ -12,15 +12,18 @@ def hash_password(password: str) -> str:
     return f"{salt}:{hashed}"
 
 def verify_password(stored_password: str, provided_password: str) -> bool:
-    try:
-        # Tách salt và chuỗi hash cũ từ dữ liệu đã lưu
-        salt, hashed = stored_password.split(':')
-        
-        # Tính toán lại hash bằng mật khẩu người dùng nhập và salt
-        recalculated_hash = hashlib.sha256((salt + provided_password).encode('utf-8')).hexdigest()
-        
-        # So sánh hai chuỗi hash, trả về True nếu trùng khớp
-        return recalculated_hash == hashed
-    except ValueError:
-        # Xử lý trường hợp định dạng chuỗi lưu trữ không hợp lệ
+    if not stored_password:
         return False
+
+    # Hỗ trợ cả định dạng mật khẩu cũ (SHA-256 plain) và mới (salt:hash)
+    if ':' in stored_password:
+        try:
+            salt, hashed = stored_password.split(':', 1)
+            recalculated_hash = hashlib.sha256((salt + provided_password).encode('utf-8')).hexdigest()
+            return recalculated_hash == hashed
+        except ValueError:
+            return False
+
+    # Dữ liệu cũ từ seed.sql: lưu plain SHA-256 (không salt)
+    legacy_hash = hashlib.sha256(provided_password.encode('utf-8')).hexdigest()
+    return legacy_hash == stored_password

@@ -1,23 +1,7 @@
-"""
-views/admin.py
---------------
-Giao diện GUI (Tkinter) dành cho ADMINISTRATOR.
-Người phụ trách : Lý Tuấn Đạt
-Deadline        : 08/09
-Cấu trúc file:
-    - Khai báo màu / font dùng chung
-    - _safe_call(): gọi hàm đọc dữ liệu của service, bắt ConnectionError
-      và hiển thị messagebox thay vì làm crash cửa sổ
-    - FormDialog: hộp thoại nhập liệu dùng chung cho các form Thêm/Sửa
-    - AdminApp: cửa sổ chính, có sidebar điều hướng + vùng nội dung
-    - Các Page (UsersPage, RoomTypesPage, RoomsPage, BookingsPage,
-      ReviewsPage, ReportsPage): mỗi Page tương ứng 1 chức năng quản lý
-    - admin_menu(current_user): hàm khởi chạy, được gọi từ views/login.py
-      sau khi đăng nhập thành công với role = 'Admin'
-"""
-
 import tkinter as tk
 from tkinter import ttk, messagebox
+from datetime import datetime
+from tkcalendar import DateEntry
 
 from services.admin_service import AdminService
 
@@ -47,7 +31,7 @@ def _safe_call(parent, func, *args, **kwargs):
     try:
         return func(*args, **kwargs)
     except ConnectionError as e:
-        messagebox.showerror("Lỗi kết nối", str(e), parent=parent)
+        messagebox.showerror("Connection Error", str(e), parent=parent)
         return None
 
 
@@ -131,8 +115,8 @@ class FormDialog(tk.Toplevel):
 
         btn_frame = tk.Frame(self, bg=COLOR_MAIN_BG, pady=10)
         btn_frame.pack(fill="x")
-        _make_button(btn_frame, "Lưu", self._on_save, primary=True).pack(side="right", padx=10)
-        _make_button(btn_frame, "Hủy", self.destroy).pack(side="right")
+        _make_button(btn_frame, "Save", self._on_save, primary=True).pack(side="right", padx=10)
+        _make_button(btn_frame, "Cancel", self.destroy).pack(side="right")
 
         self.transient(parent)
         self.grab_set()
@@ -147,10 +131,11 @@ class FormDialog(tk.Toplevel):
 # CỬA SỔ CHÍNH: sidebar điều hướng + vùng nội dung
 # =====================================================
 class AdminApp(tk.Tk):
-    def __init__(self, current_user):
+    def __init__(self, current_user, on_logout=None):
         super().__init__()
         self.current_user = current_user
-        self.title("Hotel Room Booking System - Quản trị")
+        self.on_logout = on_logout
+        self.title("Hotel Room Booking System - Administration")
         self.geometry("1080x640")
         self.minsize(960, 580)
         self.configure(bg=COLOR_MAIN_BG)
@@ -185,12 +170,12 @@ class AdminApp(tk.Tk):
         ).pack(pady=(0, 24))
 
         nav_items = [
-            ("users", "Người dùng"),
-            ("room_types", "Loại phòng"),
-            ("rooms", "Phòng"),
-            ("bookings", "Đặt phòng"),
-            ("reviews", "Đánh giá"),
-            ("reports", "Báo cáo"),
+            ("users", "Users"),
+            ("room_types", "Room Types"),
+            ("rooms", "Rooms"),
+            ("bookings", "Bookings"),
+            ("reviews", "Reviews"),
+            ("reports", "Reports"),
         ]
         self.nav_buttons = {}
         for key, label in nav_items:
@@ -206,7 +191,7 @@ class AdminApp(tk.Tk):
         tk.Frame(sidebar, bg=COLOR_SIDEBAR).pack(expand=True, fill="both")
 
         tk.Button(
-            sidebar, text="Đăng xuất", anchor="w", bd=0, padx=20, pady=12,
+            sidebar, text="Log Out", anchor="w", bd=0, padx=20, pady=12,
             bg=COLOR_SIDEBAR, fg=COLOR_TEXT, font=FONT_NORMAL,
             activebackground=COLOR_ACCENT, activeforeground=COLOR_WHITE,
             cursor="hand2", command=self._logout
@@ -234,8 +219,10 @@ class AdminApp(tk.Tk):
             self.pages[key].on_show()
 
     def _logout(self):
-        if messagebox.askyesno("Đăng xuất", "Bạn có chắc muốn đăng xuất?", parent=self):
+        if messagebox.askyesno("Log Out", "Are you sure you want to log out?", parent=self):
             self.destroy()
+            if self.on_logout:
+                self.on_logout()
 
 
 # =====================================================
@@ -243,7 +230,7 @@ class AdminApp(tk.Tk):
 # =====================================================
 class UsersPage(tk.Frame):
     COLUMNS = ("user_id", "full_name", "email", "phone", "role", "status")
-    HEADERS = ("ID", "Họ tên", "Email", "SĐT", "Vai trò", "Trạng thái")
+    HEADERS = ("ID", "Full Name", "Email", "Phone", "Role", "Status")
 
     def __init__(self, parent, app):
         super().__init__(parent, bg=COLOR_MAIN_BG)
@@ -252,7 +239,7 @@ class UsersPage(tk.Frame):
 
     def _build_ui(self):
         tk.Label(
-            self, text="Quản lý người dùng", bg=COLOR_MAIN_BG, fg=COLOR_TEXT, font=FONT_TITLE
+            self, text="User Management", bg=COLOR_MAIN_BG, fg=COLOR_TEXT, font=FONT_TITLE
         ).pack(anchor="w", padx=20, pady=(16, 8))
 
         toolbar = tk.Frame(self, bg=COLOR_MAIN_BG)
@@ -261,12 +248,12 @@ class UsersPage(tk.Frame):
         self.search_var = tk.StringVar()
         tk.Entry(toolbar, textvariable=self.search_var, width=28, font=FONT_NORMAL).pack(
             side="left", padx=(0, 8))
-        _make_button(toolbar, "Tìm kiếm", self._search).pack(side="left", padx=4)
-        _make_button(toolbar, "Làm mới", self.on_show).pack(side="left", padx=4)
-        _make_button(toolbar, "Đổi vai trò", self._change_role).pack(side="left", padx=4)
-        _make_button(toolbar, "Khóa", self._lock).pack(side="left", padx=4)
-        _make_button(toolbar, "Mở khóa", self._unlock).pack(side="left", padx=4)
-        _make_button(toolbar, "Xóa", self._delete, primary=True).pack(side="left", padx=4)
+        _make_button(toolbar, "Search", self._search).pack(side="left", padx=4)
+        _make_button(toolbar, "Refresh", self.on_show).pack(side="left", padx=4)
+        _make_button(toolbar, "Change Role", self._change_role).pack(side="left", padx=4)
+        _make_button(toolbar, "Lock", self._lock).pack(side="left", padx=4)
+        _make_button(toolbar, "Unlock", self._unlock).pack(side="left", padx=4)
+        _make_button(toolbar, "Delete", self._delete, primary=True).pack(side="left", padx=4)
 
         self.tree = self._build_tree()
 
@@ -308,7 +295,7 @@ class UsersPage(tk.Frame):
     def _selected_id(self):
         sel = self.tree.selection()
         if not sel:
-            messagebox.showwarning("Chưa chọn", "Vui lòng chọn một user trong danh sách.",
+            messagebox.showwarning("No Selection", "Please select a user from the list.",
                                     parent=self.app)
             return None
         return int(sel[0])
@@ -317,8 +304,8 @@ class UsersPage(tk.Frame):
         user_id = self._selected_id()
         if user_id is None:
             return
-        dialog = FormDialog(self.app, "Đổi vai trò", [
-            ("new_role", "Vai trò mới", "combobox", ["Member", "Receptionist", "Admin"]),
+        dialog = FormDialog(self.app, "Change Role", [
+            ("new_role", "New Role", "combobox", ["Member", "Receptionist", "Admin"]),
         ])
         if dialog.result:
             ok, msg = admin_service.update_user_role(user_id, dialog.result["new_role"])
@@ -342,13 +329,13 @@ class UsersPage(tk.Frame):
         user_id = self._selected_id()
         if user_id is None:
             return
-        if messagebox.askyesno("Xác nhận", f"Xóa user #{user_id}?", parent=self.app):
+        if messagebox.askyesno("Confirm", f"Delete user #{user_id}?", parent=self.app):
             ok, msg = admin_service.delete_user(user_id)
             self._notify(ok, msg)
 
     def _notify(self, ok, msg):
         (messagebox.showinfo if ok else messagebox.showerror)(
-            "Thành công" if ok else "Lỗi", msg, parent=self.app)
+            "Success" if ok else "Error", msg, parent=self.app)
         self.on_show()
 
 
@@ -357,7 +344,7 @@ class UsersPage(tk.Frame):
 # =====================================================
 class RoomTypesPage(tk.Frame):
     COLUMNS = ("room_type_id", "type_name", "capacity", "price_per_night", "description")
-    HEADERS = ("ID", "Tên loại", "Sức chứa", "Giá/đêm", "Mô tả")
+    HEADERS = ("ID", "Type Name", "Capacity", "Price/Night", "Description")
 
     def __init__(self, parent, app):
         super().__init__(parent, bg=COLOR_MAIN_BG)
@@ -366,15 +353,15 @@ class RoomTypesPage(tk.Frame):
 
     def _build_ui(self):
         tk.Label(
-            self, text="Quản lý loại phòng", bg=COLOR_MAIN_BG, fg=COLOR_TEXT, font=FONT_TITLE
+            self, text="Room Type Management", bg=COLOR_MAIN_BG, fg=COLOR_TEXT, font=FONT_TITLE
         ).pack(anchor="w", padx=20, pady=(16, 8))
 
         toolbar = tk.Frame(self, bg=COLOR_MAIN_BG)
         toolbar.pack(fill="x", padx=20)
-        _make_button(toolbar, "Làm mới", self.on_show).pack(side="left", padx=4)
-        _make_button(toolbar, "Thêm mới", self._add).pack(side="left", padx=4)
-        _make_button(toolbar, "Sửa", self._edit).pack(side="left", padx=4)
-        _make_button(toolbar, "Xóa", self._delete, primary=True).pack(side="left", padx=4)
+        _make_button(toolbar, "Refresh", self.on_show).pack(side="left", padx=4)
+        _make_button(toolbar, "Add", self._add).pack(side="left", padx=4)
+        _make_button(toolbar, "Edit", self._edit).pack(side="left", padx=4)
+        _make_button(toolbar, "Delete", self._delete, primary=True).pack(side="left", padx=4)
 
         self.tree = self._build_tree()
 
@@ -407,16 +394,16 @@ class RoomTypesPage(tk.Frame):
     def _selected(self):
         sel = self.tree.selection()
         if not sel:
-            messagebox.showwarning("Chưa chọn", "Vui lòng chọn một loại phòng.", parent=self.app)
+            messagebox.showwarning("No Selection", "Please select a room type.", parent=self.app)
             return None
         return sel[0], self.tree.item(sel[0])["values"]
 
     def _add(self):
-        dialog = FormDialog(self.app, "Thêm loại phòng", [
-            ("type_name", "Tên loại (VD: Deluxe)", "entry", None),
-            ("capacity", "Sức chứa (số người)", "entry", None),
-            ("price_per_night", "Giá / đêm", "entry", None),
-            ("description", "Mô tả", "entry", None),
+        dialog = FormDialog(self.app, "Add Room Type", [
+            ("type_name", "Type Name (e.g. Deluxe)", "entry", None),
+            ("capacity", "Capacity (guests)", "entry", None),
+            ("price_per_night", "Price / Night", "entry", None),
+            ("description", "Description", "entry", None),
         ])
         if not dialog.result:
             return
@@ -433,11 +420,11 @@ class RoomTypesPage(tk.Frame):
         if not selected:
             return
         iid, values = selected
-        dialog = FormDialog(self.app, "Cập nhật loại phòng", [
-            ("type_name", "Tên loại", "entry", None),
-            ("capacity", "Sức chứa", "entry", None),
-            ("price_per_night", "Giá / đêm", "entry", None),
-            ("description", "Mô tả", "entry", None),
+        dialog = FormDialog(self.app, "Edit Room Type", [
+            ("type_name", "Type Name", "entry", None),
+            ("capacity", "Capacity", "entry", None),
+            ("price_per_night", "Price / Night", "entry", None),
+            ("description", "Description", "entry", None),
         ], initial={
             "type_name": values[1], "capacity": values[2],
             "price_per_night": values[3], "description": values[4],
@@ -459,7 +446,7 @@ class RoomTypesPage(tk.Frame):
             price = float(data["price_per_night"])
             return capacity, price
         except ValueError:
-            messagebox.showerror("Lỗi nhập liệu", "Sức chứa và giá phải là số.", parent=self.app)
+            messagebox.showerror("Input Error", "Capacity and price must be numeric.", parent=self.app)
             return None, None
 
     def _delete(self):
@@ -467,13 +454,13 @@ class RoomTypesPage(tk.Frame):
         if not selected:
             return
         iid, _ = selected
-        if messagebox.askyesno("Xác nhận", f"Xóa loại phòng #{iid}?", parent=self.app):
+        if messagebox.askyesno("Confirm", f"Delete room type #{iid}?", parent=self.app):
             ok, msg = admin_service.delete_room_type(int(iid))
             self._notify(ok, msg)
 
     def _notify(self, ok, msg):
         (messagebox.showinfo if ok else messagebox.showerror)(
-            "Thành công" if ok else "Lỗi", msg, parent=self.app)
+            "Success" if ok else "Error", msg, parent=self.app)
         self.on_show()
 
 
@@ -482,7 +469,7 @@ class RoomTypesPage(tk.Frame):
 # =====================================================
 class RoomsPage(tk.Frame):
     COLUMNS = ("room_number", "floor", "type_name", "price_per_night", "status")
-    HEADERS = ("Số phòng", "Tầng", "Loại", "Giá/đêm", "Trạng thái")
+    HEADERS = ("Room Number", "Floor", "Type", "Price/Night", "Status")
 
     def __init__(self, parent, app):
         super().__init__(parent, bg=COLOR_MAIN_BG)
@@ -491,15 +478,15 @@ class RoomsPage(tk.Frame):
 
     def _build_ui(self):
         tk.Label(
-            self, text="Quản lý phòng", bg=COLOR_MAIN_BG, fg=COLOR_TEXT, font=FONT_TITLE
+            self, text="Room Management", bg=COLOR_MAIN_BG, fg=COLOR_TEXT, font=FONT_TITLE
         ).pack(anchor="w", padx=20, pady=(16, 8))
 
         toolbar = tk.Frame(self, bg=COLOR_MAIN_BG)
         toolbar.pack(fill="x", padx=20)
-        _make_button(toolbar, "Làm mới", self.on_show).pack(side="left", padx=4)
-        _make_button(toolbar, "Thêm mới", self._add).pack(side="left", padx=4)
-        _make_button(toolbar, "Sửa", self._edit).pack(side="left", padx=4)
-        _make_button(toolbar, "Xóa", self._delete, primary=True).pack(side="left", padx=4)
+        _make_button(toolbar, "Refresh", self.on_show).pack(side="left", padx=4)
+        _make_button(toolbar, "Add", self._add).pack(side="left", padx=4)
+        _make_button(toolbar, "Edit", self._edit).pack(side="left", padx=4)
+        _make_button(toolbar, "Delete", self._delete, primary=True).pack(side="left", padx=4)
 
         self.tree = self._build_tree()
 
@@ -532,7 +519,7 @@ class RoomsPage(tk.Frame):
     def _selected(self):
         sel = self.tree.selection()
         if not sel:
-            messagebox.showwarning("Chưa chọn", "Vui lòng chọn một phòng.", parent=self.app)
+            messagebox.showwarning("No Selection", "Please select a room.", parent=self.app)
             return None
         return sel[0], self.tree.item(sel[0])["values"]
 
@@ -545,13 +532,13 @@ class RoomsPage(tk.Frame):
         options = self._room_type_options()
         if not options:
             messagebox.showwarning(
-                "Chưa có loại phòng",
-                "Vui lòng thêm loại phòng trước khi thêm phòng cụ thể.", parent=self.app)
+                "No Room Types",
+                "Please add a room type before adding a room.", parent=self.app)
             return
-        dialog = FormDialog(self.app, "Thêm phòng", [
-            ("room_number", "Số phòng (VD: P101)", "entry", None),
-            ("room_type", "Loại phòng", "combobox", options),
-            ("floor", "Tầng", "entry", None),
+        dialog = FormDialog(self.app, "Add Room", [
+            ("room_number", "Room Number (e.g. 101)", "entry", None),
+            ("room_type", "Room Type", "combobox", options),
+            ("floor", "Floor", "entry", None),
         ])
         if not dialog.result:
             return
@@ -559,7 +546,7 @@ class RoomsPage(tk.Frame):
             room_type_id = int(dialog.result["room_type"].split(" - ")[0])
             floor = int(dialog.result["floor"])
         except (ValueError, IndexError):
-            messagebox.showerror("Lỗi nhập liệu", "Loại phòng / Tầng không hợp lệ.", parent=self.app)
+            messagebox.showerror("Input Error", "Room type or floor is invalid.", parent=self.app)
             return
         ok, msg = admin_service.add_room(dialog.result["room_number"], room_type_id, floor)
         self._notify(ok, msg)
@@ -570,10 +557,10 @@ class RoomsPage(tk.Frame):
             return
         room_number, values = selected
         options = self._room_type_options()
-        dialog = FormDialog(self.app, "Cập nhật phòng", [
-            ("room_type", "Loại phòng mới", "combobox", options),
-            ("floor", "Tầng mới", "entry", None),
-            ("status", "Trạng thái mới", "combobox", ["Available", "Booked", "Maintenance"]),
+        dialog = FormDialog(self.app, "Edit Room", [
+            ("room_type", "New Room Type", "combobox", options),
+            ("floor", "New Floor", "entry", None),
+            ("status", "New Status", "combobox", ["Available", "Booked", "Maintenance"]),
         ], initial={"floor": values[1], "status": values[4]})
         if not dialog.result:
             return
@@ -583,7 +570,7 @@ class RoomsPage(tk.Frame):
             try:
                 room_type_id = int(dialog.result["room_type"].split(" - ")[0])
             except (ValueError, IndexError):
-                messagebox.showerror("Lỗi nhập liệu", "Loại phòng không hợp lệ.", parent=self.app)
+                messagebox.showerror("Input Error", "Room type is invalid.", parent=self.app)
                 return
         floor = int(dialog.result["floor"]) if dialog.result["floor"] else None
         status = dialog.result["status"] or None
@@ -596,13 +583,13 @@ class RoomsPage(tk.Frame):
         if not selected:
             return
         room_number, _ = selected
-        if messagebox.askyesno("Xác nhận", f"Xóa phòng {room_number}?", parent=self.app):
+        if messagebox.askyesno("Confirm", f"Delete room {room_number}?", parent=self.app):
             ok, msg = admin_service.delete_room(room_number)
             self._notify(ok, msg)
 
     def _notify(self, ok, msg):
         (messagebox.showinfo if ok else messagebox.showerror)(
-            "Thành công" if ok else "Lỗi", msg, parent=self.app)
+            "Success" if ok else "Error", msg, parent=self.app)
         self.on_show()
 
 
@@ -612,8 +599,8 @@ class RoomsPage(tk.Frame):
 class BookingsPage(tk.Frame):
     COLUMNS = ("booking_id", "full_name", "room_id", "check_in", "check_out",
                "total_price", "status")
-    HEADERS = ("ID", "Khách hàng", "Phòng", "Nhận", "Trả", "Tổng tiền", "Trạng thái")
-    STATUS_OPTIONS = ["Tất cả", "Pending", "Confirmed", "CheckedIn", "CheckedOut", "Cancelled"]
+    HEADERS = ("ID", "Guest", "Room", "Check-in", "Check-out", "Total", "Status")
+    STATUS_OPTIONS = ["All", "Pending", "Confirmed", "CheckedIn", "CheckedOut", "Cancelled"]
 
     def __init__(self, parent, app):
         super().__init__(parent, bg=COLOR_MAIN_BG)
@@ -622,18 +609,18 @@ class BookingsPage(tk.Frame):
 
     def _build_ui(self):
         tk.Label(
-            self, text="Quản lý đặt phòng", bg=COLOR_MAIN_BG, fg=COLOR_TEXT, font=FONT_TITLE
+            self, text="Booking Management", bg=COLOR_MAIN_BG, fg=COLOR_TEXT, font=FONT_TITLE
         ).pack(anchor="w", padx=20, pady=(16, 8))
 
         toolbar = tk.Frame(self, bg=COLOR_MAIN_BG)
         toolbar.pack(fill="x", padx=20)
 
-        self.status_var = tk.StringVar(value="Tất cả")
+        self.status_var = tk.StringVar(value="All")
         ttk.Combobox(toolbar, textvariable=self.status_var, values=self.STATUS_OPTIONS,
                      state="readonly", width=14).pack(side="left", padx=(0, 8))
-        _make_button(toolbar, "Lọc", self.on_show).pack(side="left", padx=4)
-        _make_button(toolbar, "Xem chi tiết", self._view_detail).pack(side="left", padx=4)
-        _make_button(toolbar, "Hủy booking", self._cancel, primary=True).pack(side="left", padx=4)
+        _make_button(toolbar, "Filter", self.on_show).pack(side="left", padx=4)
+        _make_button(toolbar, "View Details", self._view_detail).pack(side="left", padx=4)
+        _make_button(toolbar, "Cancel Booking", self._cancel, primary=True).pack(side="left", padx=4)
 
         self.tree = self._build_tree()
 
@@ -653,7 +640,7 @@ class BookingsPage(tk.Frame):
 
     def on_show(self):
         status = self.status_var.get()
-        status = None if status == "Tất cả" else status
+        status = None if status == "All" else status
         bookings = _safe_call(self.app, admin_service.get_all_bookings, status)
         self._fill(bookings or [])
 
@@ -668,7 +655,7 @@ class BookingsPage(tk.Frame):
     def _selected_id(self):
         sel = self.tree.selection()
         if not sel:
-            messagebox.showwarning("Chưa chọn", "Vui lòng chọn một booking.", parent=self.app)
+            messagebox.showwarning("No Selection", "Please select a booking.", parent=self.app)
             return None
         return int(sel[0])
 
@@ -678,27 +665,27 @@ class BookingsPage(tk.Frame):
             return
         detail = _safe_call(self.app, admin_service.get_booking_detail, booking_id)
         if not detail:
-            messagebox.showinfo("Không tìm thấy", "Không tìm thấy booking.", parent=self.app)
+            messagebox.showinfo("Not Found", "Booking not found.", parent=self.app)
             return
 
         win = tk.Toplevel(self.app)
-        win.title(f"Chi tiết booking #{detail['booking_id']}")
+        win.title(f"Booking Details #{detail['booking_id']}")
         win.configure(bg=COLOR_MAIN_BG)
 
         info = (
-            f"Khách hàng : {detail['full_name']} ({detail['email']})\n"
-            f"Loại phòng : {detail['type_name']}\n"
-            f"Phòng      : {detail['room_id'] or '(chưa xếp phòng)'}\n"
-            f"Nhận phòng : {detail['check_in']}\n"
-            f"Trả phòng  : {detail['check_out']}\n"
-            f"Tổng tiền  : {detail['total_price']}\n"
-            f"Hoàn tiền  : {detail['refund_price']}\n"
-            f"Trạng thái : {detail['status']}"
+            f"Guest       : {detail['full_name']} ({detail['email']})\n"
+            f"Room type   : {detail['type_name']}\n"
+            f"Room        : {detail['room_id'] or '(unassigned)'}\n"
+            f"Check-in    : {detail['check_in']}\n"
+            f"Check-out   : {detail['check_out']}\n"
+            f"Total       : {detail['total_price']}\n"
+            f"Refund      : {detail['refund_price']}\n"
+            f"Status      : {detail['status']}"
         )
         tk.Label(win, text=info, bg=COLOR_MAIN_BG, fg=COLOR_TEXT, font=FONT_NORMAL,
                  justify="left", anchor="w").pack(padx=20, pady=(20, 10), anchor="w")
 
-        tk.Label(win, text="Thanh toán:", bg=COLOR_MAIN_BG, fg=COLOR_TEXT,
+        tk.Label(win, text="Payments:", bg=COLOR_MAIN_BG, fg=COLOR_TEXT,
                  font=FONT_BOLD).pack(padx=20, anchor="w")
         if detail["payments"]:
             for p in detail["payments"]:
@@ -707,26 +694,26 @@ class BookingsPage(tk.Frame):
                     bg=COLOR_MAIN_BG, fg=COLOR_TEXT, font=FONT_NORMAL, anchor="w"
                 ).pack(padx=20, anchor="w")
         else:
-            tk.Label(win, text="  (chưa có giao dịch thanh toán)", bg=COLOR_MAIN_BG,
+            tk.Label(win, text="  (no payment transactions)", bg=COLOR_MAIN_BG,
                      fg=COLOR_TEXT, font=FONT_NORMAL).pack(padx=20, anchor="w")
 
-        _make_button(win, "Đóng", win.destroy, primary=True).pack(pady=16)
+        _make_button(win, "Close", win.destroy, primary=True).pack(pady=16)
 
     def _cancel(self):
         booking_id = self._selected_id()
         if booking_id is None:
             return
-        dialog = FormDialog(self.app, "Hủy booking", [
-            ("reason", "Lý do hủy", "entry", None),
+        dialog = FormDialog(self.app, "Cancel Booking", [
+            ("reason", "Cancellation Reason", "entry", None),
         ])
         if dialog.result is None:
             return
-        if not messagebox.askyesno("Xác nhận", f"Xác nhận hủy booking #{booking_id}?",
+        if not messagebox.askyesno("Confirm", f"Confirm cancellation of booking #{booking_id}?",
                                     parent=self.app):
             return
         ok, msg = admin_service.force_cancel_booking(booking_id, dialog.result["reason"])
         (messagebox.showinfo if ok else messagebox.showerror)(
-            "Thành công" if ok else "Lỗi", msg, parent=self.app)
+            "Success" if ok else "Error", msg, parent=self.app)
         self.on_show()
 
 
@@ -735,7 +722,7 @@ class BookingsPage(tk.Frame):
 # =====================================================
 class ReviewsPage(tk.Frame):
     COLUMNS = ("review_id", "full_name", "room_id", "rating", "status", "comment")
-    HEADERS = ("ID", "Khách", "Phòng", "Rating", "Trạng thái", "Bình luận")
+    HEADERS = ("ID", "Guest", "Room", "Rating", "Status", "Comment")
 
     def __init__(self, parent, app):
         super().__init__(parent, bg=COLOR_MAIN_BG)
@@ -744,7 +731,7 @@ class ReviewsPage(tk.Frame):
 
     def _build_ui(self):
         tk.Label(
-            self, text="Quản lý đánh giá", bg=COLOR_MAIN_BG, fg=COLOR_TEXT, font=FONT_TITLE
+            self, text="Review Management", bg=COLOR_MAIN_BG, fg=COLOR_TEXT, font=FONT_TITLE
         ).pack(anchor="w", padx=20, pady=(16, 8))
 
         toolbar = tk.Frame(self, bg=COLOR_MAIN_BG)
@@ -752,14 +739,14 @@ class ReviewsPage(tk.Frame):
 
         self.only_visible_var = tk.BooleanVar(value=False)
         tk.Checkbutton(
-            toolbar, text="Chỉ hiển thị (Published)", variable=self.only_visible_var,
+            toolbar, text="Show Published Only", variable=self.only_visible_var,
             bg=COLOR_MAIN_BG, fg=COLOR_TEXT, font=FONT_NORMAL,
             selectcolor=COLOR_MAIN_BG, command=self.on_show
         ).pack(side="left", padx=(0, 12))
-        _make_button(toolbar, "Làm mới", self.on_show).pack(side="left", padx=4)
-        _make_button(toolbar, "Ẩn", self._hide).pack(side="left", padx=4)
-        _make_button(toolbar, "Hiện lại", self._unhide).pack(side="left", padx=4)
-        _make_button(toolbar, "Xóa", self._delete, primary=True).pack(side="left", padx=4)
+        _make_button(toolbar, "Refresh", self.on_show).pack(side="left", padx=4)
+        _make_button(toolbar, "Hide", self._hide).pack(side="left", padx=4)
+        _make_button(toolbar, "Unhide", self._unhide).pack(side="left", padx=4)
+        _make_button(toolbar, "Delete", self._delete, primary=True).pack(side="left", padx=4)
 
         self.tree = self._build_tree()
 
@@ -795,7 +782,7 @@ class ReviewsPage(tk.Frame):
     def _selected_id(self):
         sel = self.tree.selection()
         if not sel:
-            messagebox.showwarning("Chưa chọn", "Vui lòng chọn một đánh giá.", parent=self.app)
+            messagebox.showwarning("No Selection", "Please select a review.", parent=self.app)
             return None
         return int(sel[0])
 
@@ -817,13 +804,13 @@ class ReviewsPage(tk.Frame):
         review_id = self._selected_id()
         if review_id is None:
             return
-        if messagebox.askyesno("Xác nhận", f"Xóa đánh giá #{review_id}?", parent=self.app):
+        if messagebox.askyesno("Confirm", f"Delete review #{review_id}?", parent=self.app):
             ok, msg = admin_service.delete_review(review_id)
             self._notify(ok, msg)
 
     def _notify(self, ok, msg):
         (messagebox.showinfo if ok else messagebox.showerror)(
-            "Thành công" if ok else "Lỗi", msg, parent=self.app)
+            "Success" if ok else "Error", msg, parent=self.app)
         self.on_show()
 
 
@@ -838,29 +825,41 @@ class ReportsPage(tk.Frame):
 
     def _build_ui(self):
         tk.Label(
-            self, text="Thống kê / Báo cáo", bg=COLOR_MAIN_BG, fg=COLOR_TEXT, font=FONT_TITLE
+            self, text="Statistics / Reports", bg=COLOR_MAIN_BG, fg=COLOR_TEXT, font=FONT_TITLE
         ).pack(anchor="w", padx=20, pady=(16, 8))
 
-        # --- Báo cáo doanh thu ---
+        # --- Revenue report ---
         revenue_box = tk.LabelFrame(
-            self, text="Doanh thu theo khoảng thời gian", bg=COLOR_MAIN_BG, fg=COLOR_TEXT,
+            self, text="Revenue by Date Range", bg=COLOR_MAIN_BG, fg=COLOR_TEXT,
             font=FONT_BOLD, padx=12, pady=12
         )
         revenue_box.pack(fill="x", padx=20, pady=8)
 
-        tk.Label(revenue_box, text="Từ ngày (YYYY-MM-DD):", bg=COLOR_MAIN_BG, fg=COLOR_TEXT,
+        tk.Label(revenue_box, text="From date:", bg=COLOR_MAIN_BG, fg=COLOR_TEXT,
                  font=FONT_NORMAL).grid(row=0, column=0, sticky="w")
-        self.from_date_var = tk.StringVar()
-        tk.Entry(revenue_box, textvariable=self.from_date_var, width=14,
-                 font=FONT_NORMAL).grid(row=0, column=1, padx=6)
+        self.from_date_picker = DateEntry(
+            revenue_box,
+            width=12,
+            background=COLOR_ACCENT,
+            foreground=COLOR_TEXT,
+            borderwidth=1,
+            date_pattern="yyyy-mm-dd"
+        )
+        self.from_date_picker.grid(row=0, column=1, padx=6)
 
-        tk.Label(revenue_box, text="Đến ngày (YYYY-MM-DD):", bg=COLOR_MAIN_BG, fg=COLOR_TEXT,
+        tk.Label(revenue_box, text="To date:", bg=COLOR_MAIN_BG, fg=COLOR_TEXT,
                  font=FONT_NORMAL).grid(row=0, column=2, sticky="w", padx=(12, 0))
-        self.to_date_var = tk.StringVar()
-        tk.Entry(revenue_box, textvariable=self.to_date_var, width=14,
-                 font=FONT_NORMAL).grid(row=0, column=3, padx=6)
+        self.to_date_picker = DateEntry(
+            revenue_box,
+            width=12,
+            background=COLOR_ACCENT,
+            foreground=COLOR_TEXT,
+            borderwidth=1,
+            date_pattern="yyyy-mm-dd"
+        )
+        self.to_date_picker.grid(row=0, column=3, padx=6)
 
-        _make_button(revenue_box, "Xem báo cáo", self._show_revenue, primary=True).grid(
+        _make_button(revenue_box, "View Report", self._show_revenue, primary=True).grid(
             row=0, column=4, padx=12)
 
         self.revenue_result_var = tk.StringVar(value="")
@@ -868,35 +867,35 @@ class ReportsPage(tk.Frame):
                  fg=COLOR_TEXT, font=FONT_NORMAL, justify="left").grid(
             row=1, column=0, columnspan=5, sticky="w", pady=(10, 0))
 
-        # --- Thống kê booking theo trạng thái ---
+        # --- Booking statistics by status ---
         booking_box = tk.LabelFrame(
-            self, text="Thống kê booking theo trạng thái", bg=COLOR_MAIN_BG, fg=COLOR_TEXT,
+            self, text="Booking Statistics by Status", bg=COLOR_MAIN_BG, fg=COLOR_TEXT,
             font=FONT_BOLD, padx=12, pady=12
         )
         booking_box.pack(fill="x", padx=20, pady=8)
-        _make_button(booking_box, "Xem thống kê", self._show_booking_stats).pack(anchor="w")
+        _make_button(booking_box, "View Statistics", self._show_booking_stats).pack(anchor="w")
         self.booking_tree = ttk.Treeview(
             booking_box, columns=("status", "total"), show="headings",
             height=6, style="Admin.Treeview"
         )
-        self.booking_tree.heading("status", text="Trạng thái")
-        self.booking_tree.heading("total", text="Số lượng")
+        self.booking_tree.heading("status", text="Status")
+        self.booking_tree.heading("total", text="Count")
         self.booking_tree.pack(fill="x", pady=(8, 0))
 
-        # --- Tỉ lệ sử dụng phòng ---
+        # --- Room occupancy ---
         occupancy_box = tk.LabelFrame(
-            self, text="Tỉ lệ sử dụng phòng", bg=COLOR_MAIN_BG, fg=COLOR_TEXT,
+            self, text="Room Occupancy", bg=COLOR_MAIN_BG, fg=COLOR_TEXT,
             font=FONT_BOLD, padx=12, pady=12
         )
         occupancy_box.pack(fill="both", expand=True, padx=20, pady=8)
-        _make_button(occupancy_box, "Xem thống kê", self._show_occupancy).pack(anchor="w")
+        _make_button(occupancy_box, "View Statistics", self._show_occupancy).pack(anchor="w")
         self.occupancy_tree = ttk.Treeview(
             occupancy_box, columns=("room_number", "type_name", "total_bookings"),
             show="headings", height=6, style="Admin.Treeview"
         )
-        self.occupancy_tree.heading("room_number", text="Số phòng")
-        self.occupancy_tree.heading("type_name", text="Loại phòng")
-        self.occupancy_tree.heading("total_bookings", text="Lượt đặt")
+        self.occupancy_tree.heading("room_number", text="Room Number")
+        self.occupancy_tree.heading("type_name", text="Room Type")
+        self.occupancy_tree.heading("total_bookings", text="Bookings")
         self.occupancy_tree.pack(fill="both", expand=True, pady=(8, 0))
 
     def on_show(self):
@@ -905,17 +904,29 @@ class ReportsPage(tk.Frame):
         pass
 
     def _show_revenue(self):
-        from_date = self.from_date_var.get().strip()
-        to_date = self.to_date_var.get().strip()
-        if not from_date or not to_date:
-            messagebox.showwarning("Thiếu dữ liệu", "Vui lòng nhập đủ khoảng thời gian.",
-                                    parent=self.app)
+        from_date_obj = self.from_date_picker.get_date()
+        to_date_obj = self.to_date_picker.get_date()
+
+        if not from_date_obj or not to_date_obj:
+            messagebox.showwarning("Missing Data", "Please enter both dates.", parent=self.app)
             return
+
+        from_date = from_date_obj.strftime("%Y-%m-%d")
+        to_date = to_date_obj.strftime("%Y-%m-%d")
+
+        if from_date_obj > to_date_obj:
+            messagebox.showwarning(
+                "Invalid Data",
+                "The start date cannot be later than the end date. Please select a valid range.",
+                parent=self.app,
+            )
+            return
+
         report = _safe_call(self.app, admin_service.revenue_report, from_date, to_date)
         if report is not None:
             self.revenue_result_var.set(
-                f"Tổng doanh thu: {report['total_revenue']}    |    "
-                f"Số giao dịch thành công: {report['total_transactions']}"
+                f"Total revenue: {report['total_revenue']}    |    "
+                f"Successful transactions: {report['total_transactions']}"
             )
 
     def _show_booking_stats(self):
@@ -943,8 +954,3 @@ def admin_menu(current_user):
     """
     app = AdminApp(current_user)
     app.mainloop()
-
-
-if __name__ == "__main__":
-    # Cho phép chạy thử độc lập file này khi chưa nối được với login.py
-    admin_menu({"full_name": "Admin Test"})

@@ -1,10 +1,10 @@
 from .payment import Payment
 
 class Payment:
-    # Các trạng thái thanh toán hợp lệ
+    # Valid payment statuses.
     STATUSES = ["Paid", "Failed", "Refunded"]
 
-    # Khởi tạo đối tượng Payment với các thuộc tính
+    # Initialize a Payment object with its attributes.
     def __init__(
         self,
         payment_id=None,
@@ -15,11 +15,11 @@ class Payment:
         transaction_code=None,
         status="Paid"
     ):
-        # Kiểm tra tính hợp lệ của status
+        # Validate the payment status.
         if status not in self.STATUSES:
             raise ValueError(f"Invalid payment status: {status}")
 
-        # Gán các thuộc tính cho đối tượng Payment
+        # Assign the attributes to the Payment object.
         self.payment_id = payment_id
         self.booking_id = booking_id
         self.amount = amount
@@ -28,7 +28,7 @@ class Payment:
         self.transaction_code = transaction_code
         self.status = status
 
-    # Phương thức để tạo đối tượng Payment từ một hàng dữ liệu (row) từ cơ sở dữ liệu
+    # Create a Payment object from a database row.
     @classmethod
     def from_row(cls, row):
         return cls(
@@ -41,7 +41,7 @@ class Payment:
             status=row[6]
         )
 
-    # Phương thức để chuyển đổi đối tượng Payment thành một từ điển (dictionary)
+    # Convert the Payment object to a dictionary.
     def to_dict(self):
         return {
             "payment_id": self.payment_id,
@@ -53,10 +53,10 @@ class Payment:
             "status": self.status
         }
 
-    # Các phương thức kiểm tra trạng thái thanh toán
+    # Payment status helper methods.
     def is_paid(self):
         return self.status == "Paid"
 
-    # Phương thức kiểm tra xem thanh toán có thất bại hay không
+    # Check whether the payment was refunded.
     def is_refunded(self):
         return self.status == "Refunded"
