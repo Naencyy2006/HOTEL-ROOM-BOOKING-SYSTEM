@@ -44,6 +44,15 @@ def book_room(conn, user_id: int, room_type_id: int, check_in: date, check_out: 
     return get_booking(conn, booking_id)
 
 
+def create_booking(conn, user_id: int, room_type_id: int, check_in, check_out) -> dict:
+    """Create a booking from date objects or YYYY-MM-DD strings."""
+    if isinstance(check_in, str):
+        check_in = date.fromisoformat(check_in)
+    if isinstance(check_out, str):
+        check_out = date.fromisoformat(check_out)
+    return book_room(conn, user_id, room_type_id, check_in, check_out)
+
+
 def confirm_booking(conn, booking_id: int) -> bool:
     """
     Tương ứng Booking.confirmBooking(): boolean.

@@ -33,6 +33,7 @@ COLOR_MAIN_BG = "#F5EFFF"   # Nền chính
 COLOR_SIDEBAR = "#E5D9F2"   # Nền sidebar
 COLOR_BUTTON = "#CDC1FF"    # Nút bấm thường
 COLOR_ACCENT = "#A594F9"    # Nút chính / Mục đang chọn (Primary Accent)
+ACCENT2 = COLOR_ACCENT
 COLOR_TEXT = "#3B2F63"      # Chữ tối tương phản cao trên nền tím nhạt
 COLOR_WHITE = "#FFFFFF"     # Nền thẻ, popup & chữ nổi bật trên Accent
 

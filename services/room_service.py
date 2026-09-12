@@ -1,6 +1,7 @@
 
 
 from datetime import date
+from datetime import datetime
 
 
 def get_available_count(conn, room_type_id: int, check_in: date, check_out: date) -> int:
@@ -40,6 +41,28 @@ def get_available_count(conn, room_type_id: int, check_in: date, check_out: date
 def is_room_type_available(conn, room_type_id: int, check_in: date, check_out: date) -> bool:
     """True nếu còn ít nhất 1 phòng trống cho khoảng ngày yêu cầu."""
     return get_available_count(conn, room_type_id, check_in, check_out) > 0
+
+
+def search_rooms(conn, check_in=None, check_out=None) -> list:
+    """Return room types that have availability for the requested dates."""
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute(
+        "SELECT room_type_id, type_name, capacity, price_per_night, description "
+        "FROM room_types ORDER BY room_type_id"
+    )
+    room_types = cursor.fetchall()
+    cursor.close()
+
+    if not check_in or not check_out:
+        return room_types
+    if isinstance(check_in, str):
+        check_in = datetime.strptime(check_in, "%Y-%m-%d").date()
+    if isinstance(check_out, str):
+        check_out = datetime.strptime(check_out, "%Y-%m-%d").date()
+    return [
+        room_type for room_type in room_types
+        if is_room_type_available(conn, room_type["room_type_id"], check_in, check_out)
+    ]
 
 
 def update_room_status(conn, room_number: str, new_status: str) -> bool:
