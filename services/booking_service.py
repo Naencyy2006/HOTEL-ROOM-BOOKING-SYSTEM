@@ -84,17 +84,45 @@ def list_bookings_by_member(conn, user_id: int, status: str = None) -> list:
     trong views/member.py.
     """
     cursor = conn.cursor(dictionary=True)
+    query = """
+        SELECT
+            b.*,
+            rt.type_name,
+            rt.capacity,
+            r.room_number,
+            p.payment_date,
+            p.payment_method,
+            p.transaction_code,
+            p.status AS payment_status,
+            ch.hours_before_checkin,
+            ch.refund_percent,
+            ch.policy_description
+        FROM bookings b
+        LEFT JOIN room_types rt ON rt.room_type_id = b.room_type_id
+        LEFT JOIN rooms r ON r.room_number = b.room_id
+        LEFT JOIN payments p ON p.payment_id = (
+            SELECT p2.payment_id
+            FROM payments p2
+            WHERE p2.booking_id = b.booking_id
+            ORDER BY p2.payment_date DESC, p2.payment_id DESC
+            LIMIT 1
+        )
+        LEFT JOIN cancellation_history ch ON ch.cancellation_id = (
+            SELECT ch2.cancellation_id
+            FROM cancellation_history ch2
+            WHERE ch2.booking_id = b.booking_id
+            ORDER BY ch2.canceled_at DESC, ch2.cancellation_id DESC
+            LIMIT 1
+        )
+        WHERE b.user_id = %s
+    """
     if status:
-        cursor.execute(
-            "SELECT * FROM bookings WHERE user_id = %s AND status = %s "
-            "ORDER BY created_at DESC",
-            (user_id, status),
-        )
+        query += " AND b.status = %s"
+        params = (user_id, status)
     else:
-        cursor.execute(
-            "SELECT * FROM bookings WHERE user_id = %s ORDER BY created_at DESC",
-            (user_id,),
-        )
+        params = (user_id,)
+    query += " ORDER BY b.created_at DESC"
+    cursor.execute(query, params)
     rows = cursor.fetchall()
     cursor.close()
     return rows

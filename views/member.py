@@ -628,7 +628,7 @@ class MemberDashboard(tk.Frame):
         cout_str = b['check_out'].strftime("%d %b %Y") if isinstance(b['check_out'], (datetime.date, datetime.datetime)) else str(b['check_out'])
 
         tk.Label(
-            card, text=f"📅 Check-in: {cin_str} (14:00)   →   Check-out: {cout_str} (12:00)",
+            card, text=f"📅 Check-in: {cin_str}  →   Check-out: {cout_str} ",
             bg=COLOR_WHITE, fg=COLOR_TEXT, font=FONT_NORMAL
         ).pack(anchor="w", pady=(0, 4))
 
@@ -723,9 +723,58 @@ class MemberDashboard(tk.Frame):
 
         tk.Label(right_info, text=f"{b['total_price']:,.0f} VND", bg=COLOR_WHITE, fg=COLOR_TEXT, font=FONT_BOLD).pack(side="right")
 
-        cin_str = b['check_in'].strftime("%d %b %Y") if isinstance(b['check_in'], (datetime.date, datetime.datetime)) else str(b['check_in'])
-        cout_str = b['check_out'].strftime("%d %b %Y") if isinstance(b['check_out'], (datetime.date, datetime.datetime)) else str(b['check_out'])
-        tk.Label(card, text=f"Dates: {cin_str} - {cout_str}", bg=COLOR_WHITE, fg=COLOR_TEXT, font=FONT_NORMAL).pack(anchor="w", pady=(4, 0))
+        def format_date(value, include_time=False):
+            if isinstance(value, (datetime.date, datetime.datetime)):
+                return value.strftime("%d %b %Y %H:%M" if include_time else "%d %b %Y")
+            return str(value) if value else "N/A"
+
+        def format_money(value):
+            return f"{value:,.0f} VND" if value is not None else "N/A"
+
+        detail_grid = tk.Frame(card, bg=COLOR_WHITE)
+        detail_grid.pack(fill="x", pady=(10, 0))
+        details = [
+            ("Booking ID", b.get("booking_id", "N/A")),
+            ("Room", b.get("room_number") or b.get("room_id") or "Not assigned"),
+            ("Capacity", f"{b['capacity']} guests" if b.get("capacity") else "N/A"),
+            ("Guest", b.get("guest_name") or self.user.get("full_name", "N/A")),
+            ("Check-in", format_date(b.get("check_in"))),
+            ("Check-out", format_date(b.get("check_out"))),
+            ("Booked at", format_date(b.get("created_at"), include_time=True)),
+            ("Refund", format_money(b.get("refund_price", 0))),
+        ]
+        for index, (label, value) in enumerate(details):
+            row, column = divmod(index, 2)
+            detail = tk.Frame(detail_grid, bg=COLOR_WHITE)
+            detail.grid(row=row, column=column, sticky="w", padx=(0, 35), pady=2)
+            tk.Label(detail, text=f"{label}: ", bg=COLOR_WHITE, fg=COLOR_TEXT, font=FONT_BOLD).pack(side="left")
+            tk.Label(detail, text=str(value), bg=COLOR_WHITE, fg=COLOR_TEXT, font=FONT_NORMAL).pack(side="left")
+
+        payment_values = []
+        if b.get("payment_method"):
+            payment_values.append(f"Method: {b['payment_method']}")
+        if b.get("payment_status"):
+            payment_values.append(f"Payment: {b['payment_status']}")
+        if b.get("transaction_code"):
+            payment_values.append(f"Transaction: {b['transaction_code']}")
+        if b.get("payment_date"):
+            payment_values.append(f"Paid at: {format_date(b['payment_date'], include_time=True)}")
+        if payment_values:
+            tk.Label(
+                card, text="Payment | " + " | ".join(payment_values), bg=COLOR_WHITE,
+                fg=COLOR_TEXT, font=FONT_NORMAL, wraplength=760, justify="left"
+            ).pack(anchor="w", pady=(8, 0))
+
+        if b.get("refund_percent") is not None or b.get("policy_description"):
+            cancellation_text = f"Cancellation: {b.get('refund_percent', 0):g}% refund"
+            if b.get("hours_before_checkin") is not None:
+                cancellation_text += f" | {b['hours_before_checkin']:g} hours before check-in"
+            if b.get("policy_description"):
+                cancellation_text += f" | {b['policy_description']}"
+            tk.Label(
+                card, text=cancellation_text, bg=COLOR_WHITE, fg=COLOR_DANGER,
+                font=FONT_NORMAL, wraplength=760, justify="left"
+            ).pack(anchor="w", pady=(4, 0))
 
         if b["status"] == "Completed":
             tk.Button(
