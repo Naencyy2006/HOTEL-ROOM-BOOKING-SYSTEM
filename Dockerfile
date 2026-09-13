@@ -1,18 +1,26 @@
 FROM python:3.10-slim
 
-# Thiết lập thư mục làm việc trong container
-WORKDIR /app
-
-# Biến môi trường ngăn Python ghi file .pyc và bật log trực tiếp
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-# Cài đặt thư viện phụ thuộc
+# Cài đặt Tkinter, Màn hình ảo (Xvfb) và Web VNC
+RUN apt-get update && apt-get install -y \
+    python3-tk \
+    xvfb \
+    x11vnc \
+    novnc \
+    websockify \
+    && rm -rf /var/lib/apt/lists/*
+
+# Mặc định mở trang vnc.html khi vào localhost:6080
+RUN ln -s /usr/share/novnc/vnc.html /usr/share/novnc/index.html
+
+WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy toàn bộ mã nguồn vào container
 COPY . .
 
-# Lệnh chạy ứng dụng khi container khởi động
-CMD ["python", "main.py"]
+# Sửa lỗi ký tự xuống dòng Windows (CRLF) và cấp quyền cho start.sh
+RUN sed -i 's/\r$//' start.sh && chmod +x start.sh
+
+CMD ["./start.sh"]
