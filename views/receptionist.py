@@ -14,11 +14,11 @@ from config.database import db
 # ==========================================
 # CONSTANTS: COLOR PALETTE & TYPOGRAPHY
 # ==========================================
-COLOR_MAIN_BG = "#F5EFFF"   # Nền chính
-COLOR_SIDEBAR = "#E5D9F2"   # Nền card / panel
-COLOR_BUTTON  = "#CDC1FF"   # Nút phụ
-COLOR_ACCENT  = "#A594F9"   # Nút chính / Header
-COLOR_TEXT    = "#3B2F63"   # Chữ tối
+COLOR_MAIN_BG = "#F5EFFF"   # Background
+COLOR_SIDEBAR = "#E5D9F2"   # Card / Panel Background
+COLOR_BUTTON  = "#CDC1FF"   # Secondary Button
+COLOR_ACCENT  = "#A594F9"   # Primary Button / Header
+COLOR_TEXT    = "#3B2F63"   # Texts
 COLOR_WHITE   = "#FFFFFF"
 
 FONT_TITLE  = ("Arial", 16, "bold")
@@ -789,7 +789,7 @@ class ReceptionistView(tk.Tk):
                 if success:
                     messagebox.showinfo("Success", f"Check-out completed for booking #{booking_id}.\n{message}")
                     self.load_reservations()
-                    self.search_cio_booking()  # Cập nhật lại thông tin mới lên giao diện
+                    self.search_cio_booking()  # Update the interface with the latest information
                 else:
                     messagebox.showerror("Failed", message)
 
