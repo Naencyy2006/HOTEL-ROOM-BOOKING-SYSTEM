@@ -5,7 +5,7 @@ from tkinter import ttk, messagebox
 from config.database import db
 from services.auth_service import AuthService
 
-# Bộ màu Tím Pastel đồng bộ
+# Shared pastel purple color palette.
 COLOR_MAIN_BG = "#F5EFFF"
 COLOR_SIDEBAR = "#E5D9F2"
 COLOR_BUTTON  = "#CDC1FF"
@@ -29,7 +29,7 @@ class LoginRegisterView(tk.Frame):
 
         self._build_header()
 
-        # Tạo Card Form đặt ở giữa màn hình
+        # Create the form card in the center of the screen.
         self.card = tk.Frame(self, bg=COLOR_WHITE, padx=30, pady=25)
         self.card.place(relx=0.5, rely=0.5, anchor="center", width=420, height=480)
 
@@ -53,7 +53,7 @@ class LoginRegisterView(tk.Frame):
         header = tk.Frame(self, bg=COLOR_ACCENT, height=55)
         header.pack(fill="x")
 
-        # Nút Quay lại màn hình Khách
+        # Button to return to the Guest screen.
         btn_back = tk.Button(
             header, text="← Back to Guest", command=self._back,
             bg=COLOR_ACCENT, fg=COLOR_WHITE, font=FONT_BOLD, bd=0, cursor="hand2"

@@ -765,7 +765,7 @@ class ReceptionistView(tk.Tk):
             if success:
                 messagebox.showinfo("Success", f"Check-in completed for booking #{booking_id}.\n{message}")
                 self.load_reservations()
-                self.search_cio_booking()  # Cập nhật lại thông tin mới lên giao diện
+                self.search_cio_booking()  # Refresh the latest information in the interface.
             else:
                 messagebox.showerror("Failed", message)
 

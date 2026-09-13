@@ -2,7 +2,7 @@ import os
 import sys
 import datetime
 
-# Tự động thêm đường dẫn gốc project để import các gói services/
+# Add the project root to the path so services/ packages can be imported.
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import tkinter as tk
@@ -14,7 +14,7 @@ try:
 except ImportError:
     HAS_TKCALENDAR = False
 
-# Import các Backend Services
+# Import backend services.
 try:
     from services import (
         booking_service,
@@ -33,17 +33,17 @@ except ImportError:
     review_service = None
 
 # ============================================================
-# HỆ THỐNG MÀU SẮC & PHÔNG CHỮ PASTEL TÍM
+# PASTEL PURPLE COLOR & TYPOGRAPHY SYSTEM
 # ============================================================
-COLOR_MAIN_BG = "#F5EFFF"   # Nền chính
-COLOR_SIDEBAR = "#E5D9F2"   # Nền sidebar
-COLOR_BUTTON = "#CDC1FF"    # Nút bấm thường
-COLOR_ACCENT = "#A594F9"    # Nút chính / Mục đang chọn (Primary Accent)
+COLOR_MAIN_BG = "#F5EFFF"   # Main background
+COLOR_SIDEBAR = "#E5D9F2"   # Sidebar background
+COLOR_BUTTON = "#CDC1FF"    # Standard button
+COLOR_ACCENT = "#A594F9"    # Primary button / selected item
 ACCENT2 = COLOR_ACCENT
-COLOR_TEXT = "#3B2F63"      # Chữ tối tương phản cao trên nền tím nhạt
-COLOR_WHITE = "#FFFFFF"     # Nền thẻ, popup & chữ nổi bật trên Accent
+COLOR_TEXT = "#3B2F63"      # High-contrast dark text on a light purple background
+COLOR_WHITE = "#FFFFFF"     # Card and popup background, plus text on Accent
 
-# Các màu bổ trợ cho Trạng thái / Cảnh báo (Đã đồng bộ với DB Status)
+# Supporting colors for statuses and warnings (aligned with database statuses).
 COLOR_SUCCESS = "#2E7D32"   # Completed / Paid
 COLOR_SUCCESS_BG = "#E8F5E9"
 COLOR_INFO = "#0288D1"      # Checked-in / Confirmed
@@ -52,7 +52,7 @@ COLOR_WARNING = "#D84315"   # Pending Payment / Pending
 COLOR_WARNING_BG = "#FBE9E7"
 COLOR_DANGER = "#C62828"    # Cancelled
 COLOR_DANGER_BG = "#FFEBEE"
-COLOR_STAR_ACTIVE = "#FFB300" # Vàng sao đánh giá
+COLOR_STAR_ACTIVE = "#FFB300" # Active review star color.
 
 FONT_NORMAL = ("Segoe UI", 10)
 FONT_BOLD = ("Segoe UI", 10, "bold")
@@ -68,21 +68,21 @@ class MemberDashboard(tk.Frame):
         self.current_tab = "dashboard"
         self._sidebar_buttons = {}
 
-        # Khởi tạo Style đồng bộ cho các Widget TTK
+        # Initialize the shared style for ttk widgets.
         self._setup_ttk_styles()
 
-        # Đồng bộ dữ liệu người dùng từ DB
+        # Synchronize user data from the database.
         self._sync_user_profile_from_db()
 
-        # Dựng giao diện chính
+        # Build the main interface.
         self._build_top_navbar()
         self._build_main_layout()
 
-        # Mặc định hiển thị Màn hình Dashboard
+        # Show the Dashboard by default.
         self.show_dashboard()
 
     # ============================================================
-    # 0. CẤU HÌNH STYLE & ĐỒNG BỘ DỮ LIỆU NỀN
+    # 0. STYLE CONFIGURATION & BASE DATA SYNCHRONIZATION
     # ============================================================
     def _setup_ttk_styles(self):
         style = ttk.Style()
@@ -112,7 +112,7 @@ class MemberDashboard(tk.Frame):
         style.configure("TSeparator", background=COLOR_BUTTON)
 
     def _get_fallback_user(self):
-        """Khớp chính xác cấu hình bảng `users` trong schema.sql"""
+        """Match the `users` table definition in schema.sql exactly."""
         return {
             "user_id": 9,
             "full_name": "Phạm Trần Bảo Ngọc",
@@ -139,7 +139,7 @@ class MemberDashboard(tk.Frame):
         self.user_lbl.configure(text=f"🔔  👤 {user_name} ({role})")
 
     def _get_all_member_bookings(self):
-        """Khớp dữ liệu seed.sql cho user_id = 9"""
+        """Match the seed.sql data for user_id = 9."""
         if self.conn and booking_service and hasattr(booking_service, 'list_bookings_by_member'):
             try:
                 res = booking_service.list_bookings_by_member(self.conn, self.user["user_id"])
@@ -148,7 +148,7 @@ class MemberDashboard(tk.Frame):
             except Exception as e:
                 print(f"[Warning] Sync bookings from DB error: {e}")
 
-        # Dữ liệu fallback chuẩn theo seed.sql
+        # Standard fallback data from seed.sql.
         return [
             {
                 "booking_id": 2008,
@@ -316,7 +316,7 @@ class MemberDashboard(tk.Frame):
                 self.master.destroy()
 
     # ============================================================
-    # MÀN HÌNH 1: DASHBOARD OVERVIEW
+    # SCREEN 1: DASHBOARD OVERVIEW
     # ============================================================
     def show_dashboard(self):
         self._set_active_tab("dashboard")
@@ -335,7 +335,7 @@ class MemberDashboard(tk.Frame):
         stats_frame.pack(fill="x", pady=(0, 20))
 
         bookings = self._get_all_member_bookings()
-        # Đã cập nhật bao gồm cả Checked-in và Pending Payment
+        # Include both Checked-in and Pending Payment statuses.
         active_cnt = len([b for b in bookings if b["status"] in ("Confirmed", "Pending Payment", "Checked-in", "Pending")])
         completed_cnt = len([b for b in bookings if b["status"] == "Completed"])
         total_spent = sum([b["total_price"] for b in bookings if b["status"] in ("Confirmed", "Completed", "Checked-in")])
@@ -371,7 +371,7 @@ class MemberDashboard(tk.Frame):
         tk.Label(card, text=val, bg=COLOR_WHITE, fg=accent_color, font=FONT_TITLE).pack(anchor="w", pady=(5, 0))
 
     # ============================================================
-    # MÀN HÌNH 2: SEARCH ROOMS (Đồng bộ cột với room_types)
+    # SCREEN 2: SEARCH ROOMS (aligned with room_types columns)
     # ============================================================
     def show_search(self):
         self._set_active_tab("search")
@@ -494,7 +494,7 @@ class MemberDashboard(tk.Frame):
             except Exception as e:
                 print(f"[Warning] Room search DB error: {e}")
 
-        # Fallback dữ liệu từ seed.sql (bảng room_types)
+        # Fallback data from seed.sql (room_types table).
         if not rooms:
             rooms = [
                 {"room_type_id": 1, "type_name": "Standard Single", "price_per_night": 500000.00, "capacity": 1, "description": "Cozy standard single room with essential amenities."},
@@ -520,7 +520,7 @@ class MemberDashboard(tk.Frame):
         left = tk.Frame(card, bg=COLOR_WHITE)
         left.pack(side="left", fill="both", expand=True)
 
-        # Đã đồng bộ trường với DB room_types (type_name, price_per_night)
+        # Field names are aligned with the room_types table.
         room_name = room.get("type_name") or room.get("name", "Standard Room")
         capacity = room.get("capacity", 2)
         price = room.get("price_per_night") or room.get("price", 1000000)
@@ -565,7 +565,7 @@ class MemberDashboard(tk.Frame):
             self._pay_now(booking)
 
     # ============================================================
-    # MÀN HÌNH 3: MY ACTIVE BOOKINGS (Đã bổ sung Checked-in)
+    # SCREEN 3: MY ACTIVE BOOKINGS (including Checked-in)
     # ============================================================
     def show_my_bookings(self):
         self._set_active_tab("my_bookings")
@@ -573,7 +573,7 @@ class MemberDashboard(tk.Frame):
 
         tk.Label(self.content, text="📅 My Active Bookings", bg=COLOR_MAIN_BG, fg=COLOR_TEXT, font=FONT_TITLE).pack(anchor="w", pady=(0, 15))
 
-        # Đã cập nhật lọc bao gồm Checked-in và Pending
+        # Filter to include Checked-in and Pending statuses.
         bookings = [
             b for b in self._get_all_member_bookings()
             if b["status"] in ("Confirmed", "Pending Payment", "Checked-in", "Pending")
@@ -598,7 +598,7 @@ class MemberDashboard(tk.Frame):
         booking_code = b.get("booking_code", f"#BK-{b['booking_id']}")
         tk.Label(top, text=f"BOOKING ID: {booking_code}", bg=COLOR_WHITE, fg=COLOR_TEXT, font=FONT_BOLD).pack(side="left")
 
-        # Cấu hình Badge đồng bộ trạng thái từ DB
+        # Configure the status badge using the database status.
         if b["status"] == "Checked-in":
             badge_bg = COLOR_INFO_BG
             badge_fg = COLOR_INFO
@@ -660,7 +660,7 @@ class MemberDashboard(tk.Frame):
             tk.Label(actions, text="ℹ️ You are currently checked in to this room", bg=COLOR_WHITE, fg=COLOR_INFO, font=FONT_BOLD).pack(side="right")
 
     # ============================================================
-    # MÀN HÌNH 4: BOOKING HISTORY & REVIEWS
+    # SCREEN 4: BOOKING HISTORY & REVIEWS
     # ============================================================
     def show_history(self):
         self._set_active_tab("history")
@@ -725,7 +725,7 @@ class MemberDashboard(tk.Frame):
     def _open_review_dialog(self, booking):
         """
         TODO: gọi review_service (nếu có) để INSERT vào bảng reviews.
-        Ở đây chỉ dựng dialog nhập rating + comment theo đúng use-case
+        This dialog collects the rating and comment required by the use case.
         "Write review" (mục 4.4.9).
         """
         win = tk.Toplevel(self)
@@ -748,7 +748,7 @@ class MemberDashboard(tk.Frame):
         tk.Button(win, text="Submit", bg=ACCENT2, fg="white", command=submit).pack(pady=10)
 
     # ============================================================
-    # MÀN HÌNH 5: MY PROFILE (Đồng bộ chuẩn schema.sql)
+    # SCREEN 5: MY PROFILE (aligned with schema.sql)
     # ============================================================
     def show_profile(self):
         self._set_active_tab("profile")
@@ -798,7 +798,7 @@ class MemberDashboard(tk.Frame):
         details_grid = tk.Frame(card, bg=COLOR_WHITE)
         details_grid.pack(fill="x")
 
-        # Đã đồng bộ loại bỏ trường address và chỉnh year_of_birth thành INT
+        # Address has been removed and year_of_birth is handled as an integer.
         fields = [
             ("FULL NAME", "full_name", self.user.get("full_name", "")),
             ("EMAIL ADDRESS", "email", self.user.get("email", "")),
@@ -880,7 +880,7 @@ class MemberDashboard(tk.Frame):
         messagebox.showinfo("Success", "Account information was synchronized and updated successfully!")
 
     # ============================================================
-    # POPUP DIALOGS (ĐỒNG BỘ CẢ PHẦN THÊM REVIEWS VỚI ROOM_ID)
+    # POPUP DIALOGS (including review creation with ROOM_ID)
     # ============================================================
     def _pay_now(self, booking):
         pay_win = tk.Toplevel(self)
@@ -1070,7 +1070,7 @@ class MemberDashboard(tk.Frame):
 
 
 def open_member_dashboard(root, conn, user):
-    """Hàm public để main.py / views/login.py gọi sau khi Member đăng nhập."""
+    """Public function called by main.py / views/login.py after Member login."""
     for w in root.winfo_children():
         w.destroy()
     root.title("Hotel Booking System - Member Portal")

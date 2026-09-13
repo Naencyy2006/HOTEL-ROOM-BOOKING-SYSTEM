@@ -8,13 +8,13 @@ from services.admin_service import AdminService
 admin_service = AdminService()
 
 # =====================================================
-# BẢNG MÀU & FONT DÙNG CHUNG
+# SHARED COLORS & FONTS
 # =====================================================
-COLOR_MAIN_BG = "#F5EFFF"   # nền chính
-COLOR_SIDEBAR = "#E5D9F2"   # nền sidebar
-COLOR_BUTTON = "#CDC1FF"    # nút bấm thường
-COLOR_ACCENT = "#A594F9"    # nút chính / mục đang chọn
-COLOR_TEXT = "#3B2F63"      # chữ tối để tương phản trên nền tím nhạt
+COLOR_MAIN_BG = "#F5EFFF"   # main background
+COLOR_SIDEBAR = "#E5D9F2"   # sidebar background
+COLOR_BUTTON = "#CDC1FF"    # standard button
+COLOR_ACCENT = "#A594F9"    # primary button / selected item
+COLOR_TEXT = "#3B2F63"      # dark text for contrast on the light purple background
 COLOR_WHITE = "#FFFFFF"
 
 FONT_NORMAL = ("Segoe UI", 10)
@@ -24,9 +24,9 @@ FONT_TITLE = ("Segoe UI", 15, "bold")
 
 def _safe_call(parent, func, *args, **kwargs):
     """
-    Gọi một hàm đọc dữ liệu của service; nếu bị mất kết nối DB
-    (ConnectionError) thì hiện messagebox lỗi thay vì làm crash cửa sổ.
-    Trả về None nếu lỗi, để nơi gọi tự xử lý (thường là bỏ qua fill dữ liệu).
+    Call a service data-reading function; show an error message box instead
+    of crashing the window if the database connection is lost.
+    Return None on failure so the caller can handle it, usually by skipping the data fill.
     """
     try:
         return func(*args, **kwargs)
@@ -36,7 +36,7 @@ def _safe_call(parent, func, *args, **kwargs):
 
 
 def _make_button(parent, text, command, primary=False):
-    """Tạo nút bấm đồng bộ theo bảng màu chung của giao diện."""
+    """Create a button using the interface's shared color scheme."""
     return tk.Button(
         parent, text=text, command=command,
         bg=COLOR_ACCENT if primary else COLOR_BUTTON,
@@ -47,10 +47,10 @@ def _make_button(parent, text, command, primary=False):
 
 
 def _style_treeview():
-    """Cấu hình style chung cho mọi Treeview trong màn Admin (gọi 1 lần khi khởi tạo app)."""
+    """Configure the shared style for all Treeviews in the Admin screen."""
     style = ttk.Style()
     try:
-        style.theme_use("clam")  # cần theme 'clam' để đổi được màu heading trên Windows
+        style.theme_use("clam")  # The 'clam' theme is needed to change heading colors on Windows.
     except tk.TclError:
         pass
     style.configure(
@@ -70,20 +70,20 @@ def _style_treeview():
 
 
 # =====================================================
-# HỘP THOẠI NHẬP LIỆU DÙNG CHUNG (Thêm / Sửa)
+# SHARED INPUT DIALOG (Add / Edit)
 # =====================================================
 class FormDialog(tk.Toplevel):
     """
-    Dialog nhập liệu dùng chung cho các form Thêm/Sửa.
+    Shared input dialog for Add/Edit forms.
 
-    fields: list các tuple (key, label, kind, options)
-        kind = "entry"     -> ô nhập văn bản thường
-        kind = "combobox"  -> danh sách chọn, options = list giá trị hiển thị
-    initial: dict giá trị khởi tạo (dùng khi Sửa, để điền sẵn dữ liệu cũ)
+    fields: list of tuples (key, label, kind, options)
+        kind = "entry"     -> standard text input
+        kind = "combobox"  -> selection list, options = displayed values
+    initial: initial values (used when editing to prefill existing data)
 
-    Sau khi người dùng bấm "Lưu": self.result = dict {key: value (str)}.
-    Nếu bấm "Hủy" hoặc đóng cửa sổ: self.result = None.
-    Nơi gọi (page) chịu trách nhiệm ép kiểu (int/float) và validate.
+    After the user clicks "Save": self.result = dict {key: value (str)}.
+    If the user clicks "Cancel" or closes the window: self.result = None.
+    The caller (page) is responsible for type conversion (int/float) and validation.
     """
 
     def __init__(self, parent, title, fields, initial=None):
@@ -128,7 +128,7 @@ class FormDialog(tk.Toplevel):
 
 
 # =====================================================
-# CỬA SỔ CHÍNH: sidebar điều hướng + vùng nội dung
+# MAIN WINDOW: navigation sidebar + content area
 # =====================================================
 class AdminApp(tk.Tk):
     def __init__(self, current_user, on_logout=None):
@@ -207,7 +207,7 @@ class AdminApp(tk.Tk):
         self.pages[key] = page
 
     def show_page(self, key):
-        """Chuyển trang: đổi màu nút đang chọn trên sidebar + đưa Page lên trên cùng."""
+        """Switch pages, update the selected sidebar button color, and raise the page."""
         for k, btn in self.nav_buttons.items():
             is_active = (k == key)
             btn.configure(
@@ -226,7 +226,7 @@ class AdminApp(tk.Tk):
 
 
 # =====================================================
-# 1. TRANG QUẢN LÝ NGƯỜI DÙNG (users)
+# 1. USER MANAGEMENT PAGE (users)
 # =====================================================
 class UsersPage(tk.Frame):
     COLUMNS = ("user_id", "full_name", "email", "phone", "role", "status")
@@ -272,7 +272,7 @@ class UsersPage(tk.Frame):
         return tree
 
     def on_show(self):
-        """Tải lại danh sách user mỗi khi trang được hiển thị hoặc bấm 'Làm mới'."""
+        """Reload the user list whenever the page is shown or refreshed."""
         users = _safe_call(self.app, admin_service.get_all_users)
         self._fill(users or [])
 
@@ -340,7 +340,7 @@ class UsersPage(tk.Frame):
 
 
 # =====================================================
-# 2. TRANG QUẢN LÝ LOẠI PHÒNG (room_types)
+# 2. ROOM TYPE MANAGEMENT PAGE (room_types)
 # =====================================================
 class RoomTypesPage(tk.Frame):
     COLUMNS = ("room_type_id", "type_name", "capacity", "price_per_night", "description")
@@ -440,7 +440,7 @@ class RoomTypesPage(tk.Frame):
         self._notify(ok, msg)
 
     def _parse_numbers(self, data):
-        """Ép kiểu sức chứa (int) và giá (float); báo lỗi nếu người dùng nhập sai."""
+        """Convert capacity to int and price to float; show an error for invalid input."""
         try:
             capacity = int(data["capacity"])
             price = float(data["price_per_night"])
@@ -465,7 +465,7 @@ class RoomTypesPage(tk.Frame):
 
 
 # =====================================================
-# 3. TRANG QUẢN LÝ PHÒNG (rooms)
+# 3. ROOM MANAGEMENT PAGE (rooms)
 # =====================================================
 class RoomsPage(tk.Frame):
     COLUMNS = ("room_number", "floor", "type_name", "price_per_night", "status")
@@ -524,7 +524,7 @@ class RoomsPage(tk.Frame):
         return sel[0], self.tree.item(sel[0])["values"]
 
     def _room_type_options(self):
-        """Danh sách 'ID - Tên loại' để chọn trong combobox khi thêm/sửa phòng."""
+        """Return an 'ID - Type Name' list for the room add/edit combobox."""
         room_types = _safe_call(self.app, admin_service.get_all_room_types) or []
         return [f"{rt['room_type_id']} - {rt['type_name']}" for rt in room_types]
 
@@ -594,7 +594,7 @@ class RoomsPage(tk.Frame):
 
 
 # =====================================================
-# 4. TRANG QUẢN LÝ ĐẶT PHÒNG (bookings)
+# 4. BOOKING MANAGEMENT PAGE (bookings)
 # =====================================================
 class BookingsPage(tk.Frame):
     COLUMNS = ("booking_id", "full_name", "room_id", "check_in", "check_out",
@@ -718,7 +718,7 @@ class BookingsPage(tk.Frame):
 
 
 # =====================================================
-# 5. TRANG QUẢN LÝ ĐÁNH GIÁ (reviews)
+# 5. REVIEW MANAGEMENT PAGE (reviews)
 # =====================================================
 class ReviewsPage(tk.Frame):
     COLUMNS = ("review_id", "full_name", "room_id", "rating", "status", "comment")
@@ -815,7 +815,7 @@ class ReviewsPage(tk.Frame):
 
 
 # =====================================================
-# 6. TRANG THỐNG KÊ / BÁO CÁO
+# 6. STATISTICS / REPORTS PAGE
 # =====================================================
 class ReportsPage(tk.Frame):
     def __init__(self, parent, app):
@@ -899,8 +899,8 @@ class ReportsPage(tk.Frame):
         self.occupancy_tree.pack(fill="both", expand=True, pady=(8, 0))
 
     def on_show(self):
-        # Báo cáo chỉ tải khi người dùng chủ động bấm nút, tránh query không cần thiết
-        # mỗi lần chuyển sang tab này.
+        # Reports load only when the user clicks a button, avoiding unnecessary queries
+        # each time this tab is opened.
         pass
 
     def _show_revenue(self):
@@ -945,12 +945,12 @@ class ReportsPage(tk.Frame):
 
 
 # =====================================================
-# ĐIỂM KHỞI CHẠY (được gọi từ views/login.py sau khi đăng nhập role='Admin')
+# ENTRY POINT (called from views/login.py after logging in with role='Admin')
 # =====================================================
 def admin_menu(current_user):
     """
-    Khởi chạy giao diện GUI cho Admin.
-    current_user: dict thông tin admin đang đăng nhập, tối thiểu cần 'full_name'.
+    Start the Admin GUI.
+    current_user: dictionary for the logged-in admin; at minimum, it must contain 'full_name'.
     """
     app = AdminApp(current_user)
     app.mainloop()

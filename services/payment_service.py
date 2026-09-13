@@ -1,5 +1,3 @@
-
-
 import uuid
 from datetime import datetime
 from services import booking_service
@@ -10,7 +8,7 @@ class PaymentError(Exception):
 
 
 def _call_payment_gateway(amount: float, method: str) -> dict:
-    """Giả lập gọi Payment Gateway, luôn trả về thành công cho mục đích demo."""
+    """Simulate a Payment Gateway call that always succeeds for the demo."""
     return {
         "success": True,
         "reference_id": f"PG-{uuid.uuid4().hex[:10].upper()}",
@@ -19,10 +17,10 @@ def _call_payment_gateway(amount: float, method: str) -> dict:
 
 def process_payment(conn, booking_id: int, method: str) -> dict:
     """
-    Tương ứng Payment.processPayment(): boolean.
-    - Lấy booking để biết amount cần thanh toán.
-    - Gọi payment gateway (giả lập).
-    - Nếu thành công: lưu record payment, gọi booking_service.confirm_booking().
+    Corresponds to Payment.processPayment(): boolean.
+    - Get the booking to determine the amount to pay.
+    - Call the payment gateway (simulated).
+    - On success, save the payment record and call booking_service.confirm_booking().
     """
     booking = booking_service.get_booking(conn, booking_id)
     if booking is None:
@@ -55,8 +53,8 @@ def process_payment(conn, booking_id: int, method: str) -> dict:
 
 def process_refund(conn, payment_id: int, refund_amount: float) -> bool:
     """
-    Tương ứng Payment.processRefund(amount): boolean.
-    Được cancellation_service gọi lại khi member huỷ booking.
+    Corresponds to Payment.processRefund(amount): boolean.
+    Called by cancellation_service when a member cancels a booking.
     """
     cursor = conn.cursor()
     cursor.execute(
@@ -89,7 +87,7 @@ def get_payment_by_booking(conn, booking_id: int):
 
 
 def generate_receipt(payment: dict, booking: dict) -> str:
-    """Tương ứng Payment.generateReceipt(): String."""
+    """Corresponds to Payment.generateReceipt(): String."""
     return (
         f"----- HOÁ ĐƠN ĐIỆN TỬ -----\n"
         f"Mã booking     : {booking['booking_id']}\n"

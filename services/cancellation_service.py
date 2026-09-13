@@ -10,10 +10,9 @@ class CancellationError(Exception):
 
 def calculate_refund(total_price: float, check_in: datetime, now: datetime = None) -> dict:
     """
-    Tương ứng Booking.calculateRefund(): double.
-    Trả về dict {hours_before, refund_amount, refund_percent} để hiển thị
-    cho member xem trước khi họ bấm xác nhận huỷ (đúng luồng use-case:
-    "hệ thống hiển thị điều khoản huỷ trước khi member xác nhận").
+    Corresponds to Booking.calculateRefund(): double.
+    Return {hours_before, refund_amount, refund_percent} so the member can review
+    it before confirming cancellation, as required by the use case.
     """
     now = now or datetime.now()
     hours_before = (check_in - now).total_seconds() / 3600
@@ -34,13 +33,13 @@ def calculate_refund(total_price: float, check_in: datetime, now: datetime = Non
 
 def cancel_booking(conn, booking_id: int) -> dict:
     """
-    Tương ứng Booking.processCancellation(): boolean.
-    Thực hiện toàn bộ luồng chính của use-case Cancel Booking:
-    1. Kiểm tra booking đang Confirmed hoặc Pending Payment.
-      2. Kiểm tra còn được phép huỷ (chưa qua check-in).
-      3. Tính tiền hoàn theo chính sách.
-      4. Cập nhật booking -> Canceled, trả phòng -> Available.
-      5. Gọi payment_service.process_refund() nếu có hoàn tiền.
+        Corresponds to Booking.processCancellation(): boolean.
+        Execute the main Cancel Booking use case:
+            1. Check that the booking is Confirmed or Pending Payment.
+            2. Check that cancellation is still allowed (before check-in).
+            3. Calculate the refund according to policy.
+            4. Update the booking to Canceled and the room to Available.
+            5. Call payment_service.process_refund() when a refund applies.
     """
     booking = booking_service.get_booking(conn, booking_id)
     if booking is None:
@@ -53,7 +52,7 @@ def cancel_booking(conn, booking_id: int) -> dict:
     if now >= check_in_dt:
         raise CancellationError("A booking cannot be cancelled after check-in.")
 
-    # Booking chưa thanh toán được hủy nhưng không phát sinh tiền hoàn.
+    # An unpaid booking can be canceled but does not generate a refund.
     refund_total = booking["total_price"] if booking["status"] == "Confirmed" else 0
     refund_info = calculate_refund(refund_total, check_in_dt, now)
 
@@ -69,7 +68,7 @@ def cancel_booking(conn, booking_id: int) -> dict:
     conn.commit()
     cursor.close()
 
-    # Trả phòng vật lý đã gán về Available.
+    # Return the assigned physical room to Available.
     if booking.get("room_id"):
         room_service.release_room(conn, booking["room_id"])
 
@@ -115,7 +114,7 @@ def cancel_booking(conn, booking_id: int) -> dict:
     conn.commit()
     cursor.close()
 
-    # Ghi nhận hoàn tiền
+    # Record the refund.
     payment = payment_service.get_payment_by_booking(conn, booking_id)
     if payment:
         payment_service.process_refund(conn, payment["payment_id"], refund_info["refund_amount"])

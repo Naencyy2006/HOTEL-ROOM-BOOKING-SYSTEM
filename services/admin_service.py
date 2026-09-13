@@ -4,33 +4,33 @@ from config.database import db
 
 class AdminService:
     """
-    Toàn bộ nghiệp vụ (business logic) dành cho Admin.
-    View (views/admin.py) chỉ gọi các hàm ở đây, KHÔNG thao tác SQL trực tiếp.
+    All business logic for the Admin role.
+    The view (views/admin.py) only calls these methods and does not execute SQL directly.
     """
 
     # ---------------------------------------------------------
-    # HÀM NỘI BỘ: lấy kết nối an toàn
+    # INTERNAL METHOD: get a safe connection
     # ---------------------------------------------------------
     def _connect(self):
         """
-        Lấy connection từ db.get_connection().
-        Ném ConnectionError với thông báo rõ ràng nếu kết nối thất bại,
-        thay vì để crash bằng AttributeError khi conn = None.
+        Get a connection from db.get_connection().
+        Raise ConnectionError with a clear message if the connection fails,
+        instead of allowing an AttributeError when conn is None.
         """
         conn = db.get_connection()
         if conn is None:
-            raise ConnectionError("Không thể kết nối tới cơ sở dữ liệu.")
+            raise ConnectionError("Unable to connect to the database.")
         return conn
 
     # ---------------------------------------------------------
-    # 1. QUẢN LÝ NGƯỜI DÙNG (USERS)
+    # 1. USER MANAGEMENT (USERS)
     # ---------------------------------------------------------
     def get_all_users(self, role=None):
         """
-        Lấy danh sách toàn bộ user.
-        - role: lọc theo vai trò ('Member', 'Receptionist', 'Admin'),
-                None = lấy tất cả.
-        Có thể ném ConnectionError nếu không kết nối được DB -> view bắt lỗi này.
+        Get all users.
+        - role: filter by role ('Member', 'Receptionist', 'Admin'),
+            None = get all users.
+        May raise ConnectionError if the database is unavailable; the view handles it.
         """
         conn, cursor = None, None
         try:
@@ -57,7 +57,7 @@ class AdminService:
                 conn.close()
 
     def search_users(self, keyword):
-        """Tìm user theo họ tên, email hoặc số điện thoại (dùng LIKE)."""
+        """Find users by full name, email, or phone number using LIKE."""
         conn, cursor = None, None
         try:
             conn = self._connect()
@@ -78,8 +78,8 @@ class AdminService:
 
     def update_user_role(self, user_id, new_role):
         """
-        Đổi vai trò của user (ví dụ: nâng Member lên Receptionist).
-        new_role phải thuộc {'Member', 'Receptionist', 'Admin'} (đúng ENUM trong schema).
+        Change a user's role, for example promoting a Member to Receptionist.
+        new_role must be one of {'Member', 'Receptionist', 'Admin'} as defined in the schema.
         """
         valid_roles = ("Member", "Receptionist", "Admin")
         if new_role not in valid_roles:
@@ -110,15 +110,15 @@ class AdminService:
                 conn.close()
 
     def lock_user(self, user_id):
-        """Khóa tài khoản user (đặt status = 'Locked')."""
+        """Lock a user account by setting status to 'Locked'."""
         return self._set_user_status(user_id, "Locked")
 
     def unlock_user(self, user_id):
-        """Mở khóa tài khoản user (đặt status = 'Active')."""
+        """Unlock a user account by setting status to 'Active'."""
         return self._set_user_status(user_id, "Active")
 
     def _set_user_status(self, user_id, status):
-        """Hàm dùng chung để đổi trạng thái tài khoản (nội bộ, không expose ra view)."""
+        """Shared internal method for changing account status."""
         conn, cursor = None, None
         try:
             conn = self._connect()
@@ -145,11 +145,10 @@ class AdminService:
 
     def delete_user(self, user_id):
         """
-        Xóa user khỏi hệ thống.
-        Bookings tham chiếu user_id với ON DELETE RESTRICT nên MySQL sẽ tự
-        chặn nếu còn booking bất kỳ (không riêng booking đang hoạt động).
-        Vẫn kiểm tra trước ở đây để trả thông báo tiếng Việt dễ hiểu hơn
-        thay vì để lộ lỗi FOREIGN KEY constraint thô của MySQL.
+        Delete a user from the system.
+        Bookings reference user_id with ON DELETE RESTRICT, so MySQL blocks deletion
+        if any booking exists, not only active bookings. Check first to provide a
+        clear message instead of exposing the raw MySQL foreign-key error.
         """
         conn, cursor = None, None
         try:
@@ -181,12 +180,12 @@ class AdminService:
                 conn.close()
 
     # ---------------------------------------------------------
-    # 2. QUẢN LÝ LOẠI PHÒNG (ROOM_TYPES)
+    # 2. ROOM TYPE MANAGEMENT (ROOM_TYPES)
     # ---------------------------------------------------------
-    # Rooms phụ thuộc room_type_id (giá & mô tả nằm ở đây) nên cần quản lý
-    # trước khi thêm phòng cụ thể.
+    # Rooms depend on room_type_id, which contains the price and description,
+    # so room types must be managed before individual rooms are added.
     def get_all_room_types(self):
-        """Lấy danh sách toàn bộ loại phòng."""
+        """Get all room types."""
         conn, cursor = None, None
         try:
             conn = self._connect()
@@ -203,7 +202,7 @@ class AdminService:
                 conn.close()
 
     def add_room_type(self, type_name, capacity, price_per_night, description=""):
-        """Thêm loại phòng mới (ví dụ: Standard, Deluxe, Suite...)."""
+        """Add a new room type, such as Standard, Deluxe, or Suite."""
         conn, cursor = None, None
         try:
             conn = self._connect()
@@ -229,7 +228,7 @@ class AdminService:
 
     def update_room_type(self, room_type_id, type_name=None, capacity=None,
                           price_per_night=None, description=None):
-        """Cập nhật loại phòng. Chỉ cập nhật trường được truyền vào (khác None)."""
+        """Update a room type, changing only fields whose values are not None."""
         fields, values = [], []
         if type_name is not None:
             fields.append("type_name = %s")
@@ -274,9 +273,9 @@ class AdminService:
 
     def delete_room_type(self, room_type_id):
         """
-        Xóa loại phòng.
-        rooms.room_type_id có ON DELETE RESTRICT -> không xóa được nếu còn
-        phòng thuộc loại này. Kiểm tra trước để báo lỗi rõ ràng.
+        Delete a room type.
+        rooms.room_type_id uses ON DELETE RESTRICT, so deletion is blocked while
+        rooms of this type exist. Check first to provide a clear error.
         """
         conn, cursor = None, None
         try:
@@ -308,10 +307,10 @@ class AdminService:
                 conn.close()
 
     # ---------------------------------------------------------
-    # 3. QUẢN LÝ PHÒNG (ROOMS)
+    # 3. ROOM MANAGEMENT (ROOMS)
     # ---------------------------------------------------------
     def get_all_rooms(self):
-        """Lấy danh sách toàn bộ phòng, kèm tên loại phòng và giá (join room_types)."""
+        """Get all rooms with their type names and prices by joining room_types."""
         conn, cursor = None, None
         try:
             conn = self._connect()
@@ -331,7 +330,7 @@ class AdminService:
                 conn.close()
 
     def add_room(self, room_number, room_type_id, floor):
-        """Thêm phòng mới. Trạng thái mặc định = 'Available' (theo DEFAULT của schema)."""
+        """Add a new room with the schema's default status of 'Available'."""
         conn, cursor = None, None
         try:
             conn = self._connect()
@@ -357,8 +356,8 @@ class AdminService:
 
     def update_room(self, room_number, room_type_id=None, floor=None, status=None):
         """
-        Cập nhật thông tin phòng.
-        Chỉ cập nhật các trường được truyền vào (khác None).
+        Update room information.
+        Change only fields whose values are not None.
         """
         fields, values = [], []
         if room_type_id is not None:
@@ -401,10 +400,10 @@ class AdminService:
 
     def delete_room(self, room_number):
         """
-        Xóa phòng.
-        bookings.room_id có ON DELETE RESTRICT -> không xóa được nếu phòng
-        còn xuất hiện trong booking nào (kể cả đã checkout, để giữ lịch sử).
-        Kiểm tra trước để báo lỗi thân thiện.
+        Delete a room.
+        bookings.room_id uses ON DELETE RESTRICT, so deletion is blocked if the room
+        appears in any booking, including completed bookings, to preserve history.
+        Check first to provide a friendly error.
         """
         conn, cursor = None, None
         try:
@@ -436,13 +435,13 @@ class AdminService:
                 conn.close()
 
     # ---------------------------------------------------------
-    # 4. QUẢN LÝ ĐẶT PHÒNG (BOOKINGS)
+    # 4. BOOKING MANAGEMENT (BOOKINGS)
     # ---------------------------------------------------------
     def get_all_bookings(self, status=None):
         """
-        Lấy danh sách booking, join users + room_types (+ rooms nếu đã gán phòng).
-        room_id có thể NULL nên dùng LEFT JOIN cho rooms.
-        Có thể lọc theo status.
+        Get bookings by joining users and room_types, and rooms when assigned.
+        room_id may be NULL, so use a LEFT JOIN for rooms.
+        Results can be filtered by status.
         """
         conn, cursor = None, None
         try:
@@ -469,7 +468,7 @@ class AdminService:
                 conn.close()
 
     def get_booking_detail(self, booking_id):
-        """Xem chi tiết 1 booking cụ thể (kèm thông tin thanh toán nếu có)."""
+        """Get one booking's details, including payment information when available."""
         conn, cursor = None, None
         try:
             conn = self._connect()
@@ -499,11 +498,11 @@ class AdminService:
 
     def force_cancel_booking(self, booking_id, reason=""):
         """
-        Admin hủy booking bắt buộc (ví dụ: xử lý khiếu nại, gian lận...).
-        Khác với cancellation_service.py (khách tự hủy) vì đây là quyền can
-        thiệp trực tiếp của admin. Ghi nhận thời điểm hủy vào canceled_at.
-        Không tự tính refund_price ở đây -> nếu cần hoàn tiền, phối hợp với
-        payment_service.py / cancellation_service.py xử lý riêng.
+        Force-cancel a booking as an admin, for example when handling complaints
+        or fraud. Unlike cancellation_service.py, this is direct administrator
+        intervention. Record the cancellation time in canceled_at.
+        Do not calculate refund_price here; handle refunds separately through
+        payment_service.py or cancellation_service.py when needed.
         """
         conn, cursor = None, None
         try:
@@ -531,12 +530,12 @@ class AdminService:
                 conn.close()
 
     # ---------------------------------------------------------
-    # 5. QUẢN LÝ ĐÁNH GIÁ (REVIEWS)
+    # 5. REVIEW MANAGEMENT (REVIEWS)
     # ---------------------------------------------------------
     def get_all_reviews(self, only_visible=False):
         """
-        Lấy danh sách đánh giá.
-        - only_visible=True: chỉ lấy review có status = 'Published'.
+        Get reviews.
+        - only_visible=True: return only reviews with status = 'Published'.
         """
         conn, cursor = None, None
         try:
@@ -560,11 +559,11 @@ class AdminService:
                 conn.close()
 
     def hide_review(self, review_id):
-        """Ẩn một đánh giá vi phạm (spam, ngôn từ không phù hợp...) thay vì xóa hẳn."""
+        """Hide an offending review instead of deleting it."""
         return self._set_review_status(review_id, "Hidden")
 
     def unhide_review(self, review_id):
-        """Hiện lại đánh giá đã bị ẩn trước đó."""
+        """Republish a review that was previously hidden."""
         return self._set_review_status(review_id, "Published")
 
     def _set_review_status(self, review_id, status):
@@ -594,7 +593,7 @@ class AdminService:
                 conn.close()
 
     def delete_review(self, review_id):
-        """Xóa vĩnh viễn một đánh giá."""
+        """Permanently delete a review."""
         conn, cursor = None, None
         try:
             conn = self._connect()
@@ -617,12 +616,12 @@ class AdminService:
                 conn.close()
 
     # ---------------------------------------------------------
-    # 6. THỐNG KÊ / BÁO CÁO (REPORT)
+    # 6. STATISTICS / REPORTS (REPORT)
     # ---------------------------------------------------------
     def revenue_report(self, from_date, to_date):
         """
-        Báo cáo doanh thu trong khoảng thời gian [from_date, to_date].
-        Định dạng ngày: 'YYYY-MM-DD'. Chỉ tính các payment có status = 'Paid'.
+        Revenue report for the [from_date, to_date] period.
+        Date format: 'YYYY-MM-DD'. Include only payments with status = 'Paid'.
         """
         conn, cursor = None, None
         try:
@@ -643,7 +642,7 @@ class AdminService:
                 conn.close()
 
     def booking_statistics(self):
-        """Thống kê số lượng booking theo từng trạng thái (Pending, Confirmed, ...)."""
+        """Count bookings by status (Pending, Confirmed, and so on)."""
         conn, cursor = None, None
         try:
             conn = self._connect()
@@ -660,9 +659,9 @@ class AdminService:
 
     def room_occupancy_report(self):
         """
-        Thống kê mức độ sử dụng từng phòng: số lần được đặt (không tính
-        booking đã hủy). Chỉ tính các booking đã gán room_id cụ thể
-        (bỏ qua booking chỉ đặt theo loại phòng, chưa xếp phòng).
+        Report room usage by counting bookings, excluding canceled bookings.
+        Count only bookings assigned to a specific room_id; ignore bookings made
+        only by room type that have not yet been assigned a room.
         """
         conn, cursor = None, None
         try:

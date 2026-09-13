@@ -6,11 +6,11 @@ from datetime import datetime
 
 def get_available_count(conn, room_type_id: int, check_in: date, check_out: date) -> int:
     """
-    Tương ứng RoomType.getAvailableCount(checkIn, checkOut): int (Class Diagram).
-    Đếm số phòng còn trống của 1 room_type trong khoảng [check_in, check_out).
-    Công thức: tổng số phòng thuộc room_type đó (status != 'Maintenance')
-               - số phòng đã bị giữ bởi booking có overlap ngày và status
-                 thuộc ('Pending Payment', 'Confirmed', 'Checked-in').
+        Corresponds to RoomType.getAvailableCount(checkIn, checkOut): int (Class Diagram).
+        Count available rooms of a room type during [check_in, check_out).
+        Formula: total rooms of that type (status != 'Maintenance')
+                         minus rooms held by bookings that overlap the dates and have a status
+                         in ('Pending Payment', 'Confirmed', 'Checked-in').
     """
     cursor = conn.cursor()
 
@@ -39,7 +39,7 @@ def get_available_count(conn, room_type_id: int, check_in: date, check_out: date
 
 
 def is_room_type_available(conn, room_type_id: int, check_in: date, check_out: date) -> bool:
-    """True nếu còn ít nhất 1 phòng trống cho khoảng ngày yêu cầu."""
+    """Return True if at least one room is available for the requested dates."""
     return get_available_count(conn, room_type_id, check_in, check_out) > 0
 
 
@@ -67,8 +67,8 @@ def search_rooms(conn, check_in=None, check_out=None) -> list:
 
 def update_room_status(conn, room_number: str, new_status: str) -> bool:
     """
-    Tương ứng Room.updateStatus(newStatus): void.
-    new_status ví dụ: 'Available' | 'Occupied' | 'Maintenance'.
+    Corresponds to Room.updateStatus(newStatus): void.
+    new_status examples: 'Available' | 'Occupied' | 'Maintenance'.
     """
     cursor = conn.cursor()
     cursor.execute(
@@ -81,15 +81,8 @@ def update_room_status(conn, room_number: str, new_status: str) -> bool:
     return updated
 
 
-# def release_room(conn, room_number: str) -> bool:
-#     """
-#     Tương ứng Room.releaseRoom(): void.
-#     Gọi khi huỷ booking / check-out xong -> trả phòng về 'Available'.
-#     """
-#     return update_room_status(conn, room_number, "Available")
-
 def release_room(conn, room_number: str) -> bool:
-    """Giải phóng phòng về trạng thái Available dựa trên số phòng."""
+    """Release a room by number and set its status to Available."""
     cursor = conn.cursor()
     cursor.execute(
         "UPDATE rooms SET status = 'Available' WHERE room_number = %s",
@@ -101,7 +94,7 @@ def release_room(conn, room_number: str) -> bool:
     return updated
 
 def get_room_type_info(conn, room_type_id: int):
-    """Lấy thông tin room_type (giá/đêm, sức chứa, mô tả...) để tính tổng tiền."""
+    """Get room type information for calculating the total price."""
     cursor = conn.cursor(dictionary=True)
     cursor.execute(
         "SELECT * FROM room_types WHERE room_type_id = %s", (room_type_id,)

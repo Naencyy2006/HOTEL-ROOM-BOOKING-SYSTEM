@@ -7,7 +7,7 @@ class BookingError(Exception):
 
 
 def calculate_total(check_in: date, check_out: date, price_per_night: float) -> float:
-    """Tương ứng Booking.calculateTotal(): double."""
+    """Corresponds to Booking.calculateTotal(): double."""
     nights = (check_out - check_in).days
     if nights <= 0:
         raise BookingError("Check-out date must be after check-in date.")
@@ -16,8 +16,8 @@ def calculate_total(check_in: date, check_out: date, price_per_night: float) -> 
 
 def book_room(conn, user_id: int, room_type_id: int, check_in: date, check_out: date) -> dict:
     """
-    Tương ứng Member.bookRoom(roomTypeId, checkIn, checkOut): Booking.
-    Trả về dict thông tin booking vừa tạo (Pending Payment).
+    Corresponds to Member.bookRoom(roomTypeId, checkIn, checkOut): Booking.
+    Return the newly created booking as a dictionary (Pending Payment).
     """
     room_type = room_service.get_room_type_info(conn, room_type_id)
     if room_type is None:
@@ -55,8 +55,8 @@ def create_booking(conn, user_id: int, room_type_id: int, check_in, check_out) -
 
 def confirm_booking(conn, booking_id: int) -> bool:
     """
-    Tương ứng Booking.confirmBooking(): boolean.
-    Gọi sau khi payment_service.process_payment() trả về thành công.
+    Corresponds to Booking.confirmBooking(): boolean.
+    Called after payment_service.process_payment() succeeds.
     """
     cursor = conn.cursor()
     cursor.execute(
@@ -80,7 +80,7 @@ def get_booking(conn, booking_id: int):
 
 def list_bookings_by_member(conn, user_id: int, status: str = None) -> list:
     """
-    Dùng cho use-case "View Booking History" / màn hình My Bookings, History
+    Used by the "View Booking History" use case and the My Bookings and History screens.
     trong views/member.py.
     """
     cursor = conn.cursor(dictionary=True)
