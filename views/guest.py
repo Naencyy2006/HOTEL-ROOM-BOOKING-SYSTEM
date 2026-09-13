@@ -229,8 +229,8 @@ class GuestView(tk.Frame):
                 WHERE EXISTS (
                     SELECT 1
                     FROM rooms r
-                    WHERE r.room_type_id = rt.room_type_id
-                      AND r.status != 'Maintenance'
+                                        WHERE r.room_type_id = rt.room_type_id
+                                            AND r.status = 'Available'
                       AND NOT EXISTS (
                           SELECT 1
                           FROM bookings b

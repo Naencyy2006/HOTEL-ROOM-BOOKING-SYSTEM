@@ -17,7 +17,7 @@ def get_available_count(conn, room_type_id: int, check_in: date, check_out: date
     cursor.execute(
         """
         SELECT COUNT(*) FROM rooms
-        WHERE room_type_id = %s AND status != 'Maintenance'
+        WHERE room_type_id = %s AND status = 'Available'
         """,
         (room_type_id,),
     )
