@@ -1,47 +1,47 @@
 HotelRoomBookingSystem/
 │
-├── main.py                         # File chạy chính của hệ thống (Entry point)
-├── README.md                       # Mô tả dự án và hướng dẫn cài đặt/chạy
-├── requirements.txt                # Danh sách thư viện Python phụ thuộc
-├── .gitignore                      # Các file và thư mục bỏ qua, không đưa lên GitHub
+├── main.py                         # System entry point
+├── README.md                       # Project overview and setup/usage instructions
+├── requirements.txt                # List of Python dependencies
+├── .gitignore                      # Files and directories ignored by Git
 │
-├── config/                         # Thư mục cấu hình hệ thống
-│   └── database.py                 # Cấu hình và kết nối Python với Database
+├── config/                         # System configuration directory
+│   └── database.py                 # Database configuration and connection setup
 │
-├── database/                       # Thư mục chứa các kịch bản SQL
-│   ├── schema.sql                  # Tạo Database, định nghĩa các bảng và ràng buộc (PK/FK)
-│   └── seed.sql                    # Khởi tạo dữ liệu mẫu ban đầu cho hệ thống
+├── database/                       # SQL scripts directory
+│   ├── schema.sql                  # Database schema definition, tables, and constraints (PK/FK)
+│   └── seed.sql                    # Initial seed data for system testing/demo
 │
-├── docs/                           # Tài liệu phân tích và thiết kế hệ thống
-│   └── RequirementAndDesignDocument_Group.pdf  # Tài liệu yêu cầu & thiết kế (File PDF)
+├── docs/                           # System analysis and design documentation
+│   └── RequirementAndDesignDocument_Group.pdf  # Requirements & Design Document (PDF)
 │
-├── models/                         # Tầng Dữ liệu (Data Layer) - Các class đại diện cho bảng
-│   ├── __init__.py                 # Khởi tạo package models
-│   ├── user.py                     # Model đại diện cho bảng Users (Người dùng)
-│   ├── room_type.py                # Model đại diện cho bảng RoomTypes (Loại phòng)
-│   ├── room.py                     # Model đại diện cho bảng Rooms (Phòng)
-│   ├── booking.py                  # Model đại diện cho bảng Bookings (Đơn đặt phòng)
-│   ├── payment.py                  # Model đại diện cho bảng Payments (Thanh toán)
-│   └── review.py                   # Model đại diện cho bảng Reviews (Đánh giá)
+├── models/                         # Data Layer - Classes representing database tables
+│   ├── __init__.py                 # Package initializer for models
+│   ├── user.py                     # Model representing the Users table
+│   ├── room_type.py                # Model representing the RoomTypes table
+│   ├── room.py                     # Model representing the Rooms table
+│   ├── booking.py                  # Model representing the Bookings table
+│   ├── payment.py                  # Model representing the Payments table
+│   └── review.py                   # Model representing the Reviews table
 │
-├── services/                       # Tầng Nghiệp vụ (Business Logic Layer)
-│   ├── admin_service.py            # Quản lý Rooms, Users, Bookings và xuất báo cáo
-│   ├── auth_service.py             # Xử lý Đăng ký, Đăng nhập, Đăng xuất, Đổi mật khẩu
-│   ├── booking_service.py          # Xử lý luồng đặt phòng và quản lý lịch sử đặt phòng
-│   ├── cancellation_service.py    # Xử lý hủy phòng và tính toán số tiền hoàn trả
-│   ├── payment_service.py          # Xử lý giao dịch thanh toán và xuất hóa đơn
-│   ├── receptionist_service.py     # Nghiệp vụ lễ tân: Đặt trực tiếp, Check-in, Check-out
-│   ├── review_service.py           # Quản lý, gửi và hiển thị đánh giá từ khách hàng
-│   ├── room_service.py             # Tìm kiếm, lọc và kiểm tra phòng khả dụng
-│   └── user_service.py             # Cập nhật và quản lý thông tin tài khoản người dùng
+├── services/                       # Business Logic Layer
+│   ├── admin_service.py            # Admin operations: Room/User/Booking management & reporting
+│   ├── auth_service.py             # Authentication: Registration, Login, Logout, Password reset
+│   ├── booking_service.py          # Room booking workflows and booking history management
+│   ├── cancellation_service.py     # Room cancellation processing and refund calculations
+│   ├── payment_service.py          # Payment processing and invoice generation
+│   ├── receptionist_service.py     # Receptionist operations: Walk-in bookings, Check-in, Check-out
+│   ├── review_service.py           # Customer review management, submission, and display
+│   ├── room_service.py             # Room search, filtering, and availability checking
+│   └── user_service.py             # User profile updates and account management
 │
-├── utils/                          # Thư mục chứa các hàm tiện ích dùng chung
-│   ├── password.py                 # Mã hóa (Hash) và kiểm tra tính hợp lệ của mật khẩu
-│   └── validators.py               # Kiểm tra định dạng dữ liệu đầu vào (Email, SĐT, Ngày...)
+├── utils/                          # Shared utility functions
+│   ├── password.py                 # Password hashing and verification
+│   └── validators.py               # Input validation (Email, Phone, Dates, etc.)
 │
-└── views/                          # Tầng Giao diện / Điều hướng người dùng (UI Layer)
-    ├── admin.py                    # Menu và giao diện chức năng dành cho Administrator
-    ├── guest.py                    # Menu và chức năng dành cho Khách vãng lai (Chưa đăng nhập)
-    ├── login.py                    # Giao diện màn hình đăng nhập và đăng ký tài khoản
-    ├── member.py                   # Menu và giao diện dành cho Khách hàng thành viên
-    └── receptionist.py             # Menu và giao diện chức năng dành cho Lễ tân
+└── views/                          # UI Layer / User Interface Navigation
+    ├── admin.py                    # Interface and navigation for Administrators
+    ├── guest.py                    # Interface and features for unregistered Guests
+    ├── login.py                    # Login and Registration user interfaces
+    ├── member.py                   # Interface and navigation for registered Members
+    └── receptionist.py             # Interface and navigation for Receptionists
