@@ -42,7 +42,7 @@ class ReceptionistView(tk.Tk):
         self.service = ReceptionistService()
         self.room_types_map = {}
         self.room_type_prices = {}
-        self.cio_search_results = []  # Lưu kết quả tìm kiếm cho Checkin/Checkout
+        self.cio_search_results = []  # List of bookings found in Check-in/Check-out search
 
         # Configure Theme and Styling
         self.style = ttk.Style()
@@ -75,7 +75,7 @@ class ReceptionistView(tk.Tk):
         self.load_reservations()
 
     def _configure_styles(self):
-        """Cấu hình style giao diện theo bộ màu Pastel Lavender"""
+        # Configure custom styles for the Receptionist UI with pastel purple theme
         # Form Container Styles
         self.style.configure("MainTab.TFrame", background=COLOR_MAIN_BG)
         self.style.configure("Card.TFrame", background=COLOR_SIDEBAR, relief="flat")
@@ -158,7 +158,7 @@ class ReceptionistView(tk.Tk):
         self.style.map("Secondary.TButton", background=[("active", "#B7A8F5")])
 
     def _build_header_banner(self):
-        """Header Banner với tông màu Accent tím pastel"""
+        # Build the header banner with the pastel purple accent color
         header_frame = tk.Frame(self, bg=COLOR_ACCENT, height=65)
         header_frame.pack(fill=tk.X, side=tk.TOP)
         
@@ -322,14 +322,14 @@ class ReceptionistView(tk.Tk):
         self.load_reservations()
 
     def _on_reservation_selected(self, event):
-        """Tự động điền thông tin sang tab Check-in/Check-out khi chọn dòng trong bảng"""
+        # Get selected reservation details and auto-fill the Check-in/Check-out search field    
         selected_item = self.tree_reservations.selection()
         if selected_item:
             values = self.tree_reservations.item(selected_item[0], "values")
             guest_name = values[1]
             phone = values[2]
-            
-            # Điền tên/sđt vào ô tra cứu ở Tab 3 và tự động tra cứu
+
+            # Auto-fill the Check-in/Check-out search field with guest name or phone number
             self.txt_cio_keyword.delete(0, tk.END)
             self.txt_cio_keyword.insert(0, phone if phone else guest_name)
             self.search_cio_booking()
@@ -401,7 +401,9 @@ class ReceptionistView(tk.Tk):
         btn_submit = ttk.Button(container, text="➕ Create Walk-in Booking", style="Primary.TButton", command=self.handle_walkin_booking)
         btn_submit.grid(row=1, column=0, columnspan=2, pady=15, ipadx=25, ipady=6)
 
+    
     def _build_walkin_date_selector(self, parent, prefix, row, selected_date):
+        # Create a date selector with three dropdowns (day, month, year) for walk-in booking dates
         date_frame = ttk.Frame(parent)
         date_frame.grid(row=row, column=1, pady=8, padx=(10, 0), sticky=tk.W)
 
@@ -423,6 +425,7 @@ class ReceptionistView(tk.Tk):
             self.walkin_date_selectors[prefix][part] = combo
 
     def _get_walkin_date(self, prefix):
+        # Retrieve the selected date from the walk-in date selectors and return it in ISO format (YYYY-MM-DD)
         selectors = self.walkin_date_selectors[prefix]
         try:
             return date(
@@ -434,7 +437,7 @@ class ReceptionistView(tk.Tk):
             return ""
 
     def _update_walkin_total_price(self):
-        """Calculate the walk-in total from selected room type and stay dates."""
+        # Calculate the walk-in total from selected room type and stay dates.
         room_type_text = self.cbo_w_roomtype.get()
         price_per_night = self.room_type_prices.get(room_type_text)
         check_in = self._get_walkin_date("checkin")
@@ -455,7 +458,7 @@ class ReceptionistView(tk.Tk):
         self.txt_w_price.configure(state="readonly")
 
     def _refresh_walkin_rooms(self, show_message=False):
-        """Refresh room choices and automatically select the first available room."""
+        # Refresh room choices and automatically select the first available room.
         self._update_walkin_total_price()
         room_type_text = self.cbo_w_roomtype.get()
         check_in = self._get_walkin_date("checkin")
@@ -486,7 +489,7 @@ class ReceptionistView(tk.Tk):
                 )
 
     def handle_walkin_booking(self):
-        """Handle submission for Walk-in guest booking creation with strict input validation"""
+        # Handle submission for Walk-in guest booking creation with strict input validation
         full_name = self.txt_w_fullname.get().strip()
         email = self.txt_w_email.get().strip()
         phone = self.txt_w_phone.get().strip()
@@ -549,7 +552,7 @@ class ReceptionistView(tk.Tk):
             messagebox.showerror("System Error", f"An error occurred: {e}")
 
     def _clear_walkin_inputs(self):
-        """Reset walk-in form input fields"""
+        # Reset walk-in form input fields
         self.txt_w_fullname.delete(0, tk.END)
         self.txt_w_email.delete(0, tk.END)
         self.txt_w_phone.delete(0, tk.END)
@@ -568,13 +571,13 @@ class ReceptionistView(tk.Tk):
         self.txt_w_price.configure(state="readonly")
 
     # ==========================================
-    # TAB 3: CHECK-IN & CHECK-OUT (TRA CỨU TÊN/SĐỘ)
+    # TAB 3: CHECK-IN & CHECK-OUT 
     # ==========================================
     def _build_checkin_checkout_tab(self):
         container = ttk.Frame(self.tab_checkin_checkout, padding=20, style="MainTab.TFrame")
         container.pack(fill=tk.BOTH, expand=True)
 
-        # --- Section 1: Tìm kiếm Khách hàng (Search Frame) ---
+        # --- Section 1: Customer Search (Search Box) ---
         search_frame = ttk.LabelFrame(container, text=" 🔎 Find a Booking ", padding=15)
         search_frame.pack(fill=tk.X, pady=(0, 15))
 
@@ -591,14 +594,14 @@ class ReceptionistView(tk.Tk):
         self.cbo_cio_results.grid(row=1, column=1, columnspan=2, sticky=tk.W, padx=10, pady=5)
         self.cbo_cio_results.bind("<<ComboboxSelected>>", self._on_cio_booking_selected)
 
-        # --- Section 2: Hiển thị Chi tiết phòng & Khách hàng (Info Display Frame) ---
+        # --- Section 2: Room & Customer Details Display (Info Display Frame) ---
         info_frame = ttk.LabelFrame(container, text=" 📋 Booking Details ", padding=15)
         info_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 15))
 
         info_frame.columnconfigure(1, weight=1)
         info_frame.columnconfigure(3, weight=1)
 
-        # Hàng 1: Mã Booking & Tên Khách hàng
+        # Row 1: Booking Code & Customer Name
         ttk.Label(info_frame, text="Booking ID:", font=FONT_BOLD).grid(row=0, column=0, sticky=tk.W, pady=8, padx=10)
         self.lbl_cio_booking_id = ttk.Label(info_frame, text="---", font=FONT_HEADER, foreground=COLOR_TEXT)
         self.lbl_cio_booking_id.grid(row=0, column=1, sticky=tk.W, pady=8)
@@ -607,7 +610,7 @@ class ReceptionistView(tk.Tk):
         self.lbl_cio_guest_name = ttk.Label(info_frame, text="---", font=FONT_HEADER, foreground=COLOR_TEXT)
         self.lbl_cio_guest_name.grid(row=0, column=3, sticky=tk.W, pady=8)
 
-        # Hàng 2: SĐT & Trạng thái hiện tại
+        # Row 2: Phone Number & Current Status
         ttk.Label(info_frame, text="Phone Number:", font=FONT_BOLD).grid(row=1, column=0, sticky=tk.W, pady=8, padx=10)
         self.lbl_cio_phone = ttk.Label(info_frame, text="---", font=FONT_NORMAL)
         self.lbl_cio_phone.grid(row=1, column=1, sticky=tk.W, pady=8)
@@ -616,7 +619,7 @@ class ReceptionistView(tk.Tk):
         self.lbl_cio_status = ttk.Label(info_frame, text="---", font=FONT_BOLD)
         self.lbl_cio_status.grid(row=1, column=3, sticky=tk.W, pady=8)
 
-        # Hàng 3: Số ID Phòng / Số phòng & Loại phòng
+        # Row 3: Room ID / Number & Room Type
         ttk.Label(info_frame, text="Room ID / Number:", font=FONT_BOLD).grid(row=2, column=0, sticky=tk.W, pady=8, padx=10)
         self.lbl_cio_room_id = ttk.Label(info_frame, text="---", font=FONT_HEADER, foreground="#1D4ED8")
         self.lbl_cio_room_id.grid(row=2, column=1, sticky=tk.W, pady=8)
@@ -625,7 +628,7 @@ class ReceptionistView(tk.Tk):
         self.lbl_cio_room_type = ttk.Label(info_frame, text="---", font=FONT_NORMAL)
         self.lbl_cio_room_type.grid(row=2, column=3, sticky=tk.W, pady=8)
 
-        # Hàng 4: Ngày Check-in & Check-out dự kiến
+        # Row 4: Expected Check-in & Check-out
         ttk.Label(info_frame, text="Expected Check-in:", font=FONT_BOLD).grid(row=3, column=0, sticky=tk.W, pady=8, padx=10)
         self.lbl_cio_checkin_date = ttk.Label(info_frame, text="---", font=FONT_NORMAL)
         self.lbl_cio_checkin_date.grid(row=3, column=1, sticky=tk.W, pady=8)
@@ -634,7 +637,7 @@ class ReceptionistView(tk.Tk):
         self.lbl_cio_checkout_date = ttk.Label(info_frame, text="---", font=FONT_NORMAL)
         self.lbl_cio_checkout_date.grid(row=3, column=3, sticky=tk.W, pady=8)
 
-        # --- Section 3: Thao tác Check-in / Check-out (Action Frame) ---
+        # --- Section 3: Check-in / Check-out Actions (Action Frame) ---
         action_frame = ttk.LabelFrame(container, text=" ⚡ Confirm Action ", padding=15)
         action_frame.pack(fill=tk.X)
 
@@ -653,16 +656,16 @@ class ReceptionistView(tk.Tk):
         btn_confirm_checkout.pack(side=tk.LEFT, padx=5, ipadx=10, ipady=3)
 
     def search_cio_booking(self):
-        """Tra cứu danh sách phòng dựa theo Tên hoặc SĐT"""
+       # Search for reservations by guest name or phone number 
         keyword = self.txt_cio_keyword.get().strip()
         if not keyword:
             messagebox.showwarning("Warning", "Please enter a guest name or phone number to search.")
             return
 
-        # Lấy tất cả đơn từ Service
+        # Retrieve all orders from the Service.
         all_reservations = self.service.view_reservations()
         
-        # Lọc theo keyword (khớp tương đối Tên hoặc SĐT)
+        # Filter by keyword (partial match on Name or Phone Number)
         self.cio_search_results = [
             r for r in all_reservations 
             if (keyword.lower() in (r['full_name'] or "").lower()) or (keyword in (r['phone'] or ""))
@@ -675,7 +678,7 @@ class ReceptionistView(tk.Tk):
             self.cbo_cio_results.set("")
             return
 
-        # Đưa vào Combobox danh sách đơn tìm thấy
+        # Populate the combobox with the list of found items
         combo_values = []
         for r in self.cio_search_results:
             room_str = r['room_id'] if r['room_id'] else "Unassigned"
@@ -687,17 +690,17 @@ class ReceptionistView(tk.Tk):
         self._on_cio_booking_selected(None)
 
     def _on_cio_booking_selected(self, event):
-        """Hiển thị chi tiết đơn được chọn từ Combobox"""
+        # Display details of the selected booking from the Combobox 
         idx = self.cbo_cio_results.current()
         if idx < 0 or idx >= len(self.cio_search_results):
             return
 
         booking = self.cio_search_results[idx]
 
-        # Truy vấn bổ sung thông tin sức chứa phòng (số người) từ Database nếu có
+        # Query the database for additional room capacity information (number of people), if available.
         max_capacity = self._get_room_capacity(booking.get('type_name'))
 
-        # Cập nhật thông tin lên UI
+        # Update the UI with the booking details
         self.lbl_cio_booking_id.config(text=str(booking['booking_id']))
         self.lbl_cio_guest_name.config(text=str(booking['full_name']))
         self.lbl_cio_phone.config(text=str(booking['phone']))
@@ -712,13 +715,13 @@ class ReceptionistView(tk.Tk):
         self.lbl_cio_checkin_date.config(text=str(booking['check_in']))
         self.lbl_cio_checkout_date.config(text=str(booking['check_out']))
 
-        # Tự động điền số phòng sẵn vào ô tùy chỉnh phòng
+        # Automatically populate the room number in the room customization field.
         self.txt_cio_custom_room.delete(0, tk.END)
         if booking['room_id']:
             self.txt_cio_custom_room.insert(0, str(booking['room_id']))
 
     def _get_room_capacity(self, room_type_name):
-        """Hàm phụ hỗ trợ lấy số người tối đa dựa vào tên loại phòng"""
+        # Helper function to get the maximum capacity of a room type
         if not room_type_name:
             return None
         connection = db.get_connection()
@@ -736,7 +739,7 @@ class ReceptionistView(tk.Tk):
             connection.close()
 
     def _reset_cio_info_display(self):
-        """Xóa trắng khu vực thông tin chi tiết phòng"""
+        # Clear the room details area.
         self.lbl_cio_booking_id.config(text="---")
         self.lbl_cio_guest_name.config(text="---")
         self.lbl_cio_phone.config(text="---")
@@ -748,7 +751,7 @@ class ReceptionistView(tk.Tk):
         self.txt_cio_custom_room.delete(0, tk.END)
 
     def execute_check_in(self):
-        """Thực hiện Check-in cho phòng đang chọn"""
+        # Perform check-in for the selected room.
         booking_id_text = self.lbl_cio_booking_id.cget("text")
         if booking_id_text == "---":
             messagebox.showwarning("Warning", "Please find and select a booking to check in.")
@@ -770,7 +773,7 @@ class ReceptionistView(tk.Tk):
             messagebox.showerror("Error", "Booking ID must be a valid integer.")
 
     def execute_check_out(self):
-        """Thực hiện Check-out cho phòng đang chọn"""
+        # Perform check-out for the selected room.
         booking_id_text = self.lbl_cio_booking_id.cget("text")
         if booking_id_text == "---":
             messagebox.showwarning("Warning", "Please find and select a booking to check out.")
@@ -794,7 +797,7 @@ class ReceptionistView(tk.Tk):
             messagebox.showerror("Error", "Booking ID must be a valid integer.")
 
     def run(self):
-        """Start the Tkinter GUI main event loop"""
+        # Start the Tkinter GUI main event loop
         self.mainloop()
 
 # Standalone execution for GUI testing
