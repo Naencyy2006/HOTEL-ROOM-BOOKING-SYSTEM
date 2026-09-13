@@ -4,7 +4,11 @@ COLLATE utf8mb4_unicode_ci;
 
 USE hotel_room_booking;
 
--- Drop tables in dependency order so the script can be rerun.
+-- Tắt kiểm tra khóa ngoại tạm thời để đảm bảo drop sạch sẽ (tùy chọn an toàn thêm)
+SET FOREIGN_KEY_CHECKS = 0;
+
+-- Drop tables theo thứ tự phụ thuộc khóa ngoại
+DROP TABLE IF EXISTS cancellation_history;
 DROP TABLE IF EXISTS reviews;
 DROP TABLE IF EXISTS payments;
 DROP TABLE IF EXISTS bookings;
@@ -12,9 +16,11 @@ DROP TABLE IF EXISTS rooms;
 DROP TABLE IF EXISTS room_types;
 DROP TABLE IF EXISTS users;
 
+-- Bật lại kiểm tra khóa ngoại
+SET FOREIGN_KEY_CHECKS = 1;
+
 
 -- 1. USERS
-
 CREATE TABLE users (
     user_id INT AUTO_INCREMENT PRIMARY KEY,
     full_name VARCHAR(100) NOT NULL,
@@ -29,9 +35,7 @@ CREATE TABLE users (
 );
 
 
-
--- 2. ROOM_TYPES---
-
+-- 2. ROOM_TYPES
 CREATE TABLE room_types (
     room_type_id INT AUTO_INCREMENT PRIMARY KEY,
     type_name VARCHAR(100) NOT NULL UNIQUE,
@@ -42,7 +46,6 @@ CREATE TABLE room_types (
 
 
 -- 3. ROOMS
-
 CREATE TABLE rooms (
     room_number VARCHAR(20) PRIMARY KEY,
     room_type_id INT NOT NULL,
@@ -58,7 +61,6 @@ CREATE TABLE rooms (
 
 
 -- 4. BOOKINGS
-
 CREATE TABLE bookings (
     booking_id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
@@ -99,7 +101,6 @@ CREATE TABLE bookings (
 
 
 -- 5. PAYMENTS
-
 CREATE TABLE payments (
     payment_id INT AUTO_INCREMENT PRIMARY KEY,
     booking_id INT NOT NULL,
@@ -121,7 +122,6 @@ CREATE TABLE payments (
 
 
 -- 6. CANCELLATION HISTORY
-
 CREATE TABLE cancellation_history (
     cancellation_id INT AUTO_INCREMENT PRIMARY KEY,
     booking_id INT NOT NULL,
@@ -140,7 +140,6 @@ CREATE TABLE cancellation_history (
 
 
 -- 7. REVIEWS
-
 CREATE TABLE reviews (
     review_id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
@@ -174,9 +173,7 @@ CREATE TABLE reviews (
 );
 
 
-
 -- INDEXES
-
 CREATE INDEX idx_rooms_room_type
     ON rooms(room_type_id);
 
