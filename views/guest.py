@@ -222,11 +222,41 @@ class GuestView(tk.Frame):
         # Load available room types from the database based on the search criteria, including number of guests and price range.
         try:
             cursor = self.conn.cursor(dictionary=True)
-            query = "SELECT room_type_id, type_name, capacity, price_per_night, description FROM room_types WHERE 1=1"
+            query = """
+                SELECT rt.room_type_id, rt.type_name, rt.capacity,
+                       rt.price_per_night, rt.description
+                FROM room_types rt
+                WHERE EXISTS (
+                    SELECT 1
+                    FROM rooms r
+                    WHERE r.room_type_id = rt.room_type_id
+                      AND r.status != 'Maintenance'
+                      AND NOT EXISTS (
+                          SELECT 1
+                          FROM bookings b
+                          WHERE b.room_type_id = rt.room_type_id
+                            AND b.status IN ('Pending Payment', 'Confirmed', 'Checked-in')
+                            AND b.check_in < %s
+                            AND b.check_out > %s
+                      )
+                )
+            """
             params = []
 
-            guest_str = self.cbo_guests.get()
-            guest_num = int(guest_str.split()[0].replace("+", ""))
+            if HAS_TKCALENDAR:
+                checkin_value = self.txt_checkin.get_date()
+                checkout_value = self.txt_checkout.get_date()
+            else:
+                checkin_value = datetime.strptime(self.txt_checkin.get().strip(), "%Y-%m-%d").date()
+                checkout_value = datetime.strptime(self.txt_checkout.get().strip(), "%Y-%m-%d").date()
+            params.extend([checkout_value, checkin_value])
+
+            guest_num = {
+                "1 Guest": 1,
+                "2 Guests": 2,
+                "3 Guests": 3,
+                "4+ Guests": 4,
+            }.get(self.cbo_guests.get(), 1)
             query += " AND capacity >= %s"
             params.append(guest_num)
 
@@ -239,7 +269,10 @@ class GuestView(tk.Frame):
                 params.append(float(max_p))
 
             cursor.execute(query, tuple(params))
-            rooms = cursor.fetchall()
+            rooms = [
+                room for room in cursor.fetchall()
+                if int(room.get("capacity", 0)) >= guest_num
+            ]
 
             for r in rooms:
                 self.tree.insert("", "end", values=(

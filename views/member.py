@@ -8,6 +8,12 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import tkinter as tk
 from tkinter import ttk, messagebox, simpledialog
 
+try:
+    from tkcalendar import DateEntry
+    HAS_TKCALENDAR = True
+except ImportError:
+    HAS_TKCALENDAR = False
+
 # Import các Backend Services
 try:
     from services import (
@@ -387,12 +393,34 @@ class MemberDashboard(tk.Frame):
         tk.Label(form_grid, text="Min Price (VND)", bg=COLOR_WHITE, font=FONT_NORMAL, fg=COLOR_TEXT).grid(row=0, column=3, sticky="w", padx=5)
         tk.Label(form_grid, text="Max Price (VND)", bg=COLOR_WHITE, font=FONT_NORMAL, fg=COLOR_TEXT).grid(row=0, column=4, sticky="w", padx=5)
 
-        self.entry_cin = tk.Entry(form_grid, font=FONT_NORMAL, width=13, bg=COLOR_WHITE, fg=COLOR_TEXT, relief="solid", bd=1)
-        self.entry_cin.insert(0, datetime.date.today().strftime("%Y-%m-%d"))
+        today = datetime.date.today()
+        checkout_default = today + datetime.timedelta(days=2)
+
+        if HAS_TKCALENDAR:
+            self.entry_cin = DateEntry(
+                form_grid, font=FONT_NORMAL, width=11, date_pattern="yyyy-mm-dd",
+                mindate=today, background=COLOR_ACCENT, foreground=COLOR_WHITE,
+                headersbackground=COLOR_ACCENT, headersforeground=COLOR_WHITE,
+                selectbackground=COLOR_ACCENT, selectforeground=COLOR_WHITE
+            )
+            self.entry_cin.set_date(today)
+            self.entry_cin.bind("<<DateEntrySelected>>", self._on_checkin_change)
+        else:
+            self.entry_cin = tk.Entry(form_grid, font=FONT_NORMAL, width=13, bg=COLOR_WHITE, fg=COLOR_TEXT, relief="solid", bd=1)
+            self.entry_cin.insert(0, today.strftime("%Y-%m-%d"))
         self.entry_cin.grid(row=1, column=0, padx=5, pady=5)
 
-        self.entry_cout = tk.Entry(form_grid, font=FONT_NORMAL, width=13, bg=COLOR_WHITE, fg=COLOR_TEXT, relief="solid", bd=1)
-        self.entry_cout.insert(0, (datetime.date.today() + datetime.timedelta(days=2)).strftime("%Y-%m-%d"))
+        if HAS_TKCALENDAR:
+            self.entry_cout = DateEntry(
+                form_grid, font=FONT_NORMAL, width=11, date_pattern="yyyy-mm-dd",
+                mindate=today + datetime.timedelta(days=1), background=COLOR_ACCENT, foreground=COLOR_WHITE,
+                headersbackground=COLOR_ACCENT, headersforeground=COLOR_WHITE,
+                selectbackground=COLOR_ACCENT, selectforeground=COLOR_WHITE
+            )
+            self.entry_cout.set_date(checkout_default)
+        else:
+            self.entry_cout = tk.Entry(form_grid, font=FONT_NORMAL, width=13, bg=COLOR_WHITE, fg=COLOR_TEXT, relief="solid", bd=1)
+            self.entry_cout.insert(0, checkout_default.strftime("%Y-%m-%d"))
         self.entry_cout.grid(row=1, column=1, padx=5, pady=5)
 
         self.combo_guests = ttk.Combobox(form_grid, values=["1 Guest", "2 Guests", "3 Guests", "4+ Guests"], width=10, state="readonly")
@@ -417,19 +445,40 @@ class MemberDashboard(tk.Frame):
 
         self._do_search_rooms()
 
+    def _on_checkin_change(self, event=None):
+        if HAS_TKCALENDAR:
+            next_day = self.entry_cin.get_date() + datetime.timedelta(days=1)
+            self.entry_cout.config(mindate=next_day)
+            if self.entry_cout.get_date() <= self.entry_cin.get_date():
+                self.entry_cout.set_date(next_day)
+
     def _do_search_rooms(self):
+        guest_num = {
+            "1 Guest": 1,
+            "2 Guests": 2,
+            "3 Guests": 3,
+            "4+ Guests": 4,
+        }.get(self.combo_guests.get(), 1)
+
         min_price = self.entry_min_price.get().strip()
         max_price = self.entry_max_price.get().strip()
+        try:
+            min_value = float(min_price) if min_price else None
+            max_value = float(max_price) if max_price else None
+        except ValueError:
+            messagebox.showerror(
+                "Invalid Price",
+                "Please enter valid numbers for the price range."
+            )
+            return
+
         if min_price and max_price:
-            try:
-                if float(min_price) > float(max_price):
-                    messagebox.showerror(
-                        "Invalid Price Range",
-                        "Minimum price cannot be greater than maximum price."
-                    )
-                    return
-            except ValueError:
-                pass
+            if min_value > max_value:
+                messagebox.showerror(
+                    "Invalid Price Range",
+                    "Minimum price cannot be greater than maximum price."
+                )
+                return
 
         for w in self.results_container.winfo_children():
             w.destroy()
@@ -453,6 +502,13 @@ class MemberDashboard(tk.Frame):
                 {"room_type_id": 3, "type_name": "Deluxe Suite", "price_per_night": 1500000.00, "capacity": 2, "description": "Premium suite with city views and modern amenities."},
                 {"room_type_id": 4, "type_name": "Executive VIP", "price_per_night": 3000000.00, "capacity": 4, "description": "Spacious family VIP room with a living room and two bedrooms."}
             ]
+
+        rooms = [
+            room for room in rooms
+            if int(room.get("capacity", 0)) >= guest_num
+            and (min_value is None or float(room.get("price_per_night") or room.get("price", 0)) >= min_value)
+            and (max_value is None or float(room.get("price_per_night") or room.get("price", 0)) <= max_value)
+        ]
 
         for room in rooms:
             self._render_room_search_card(room)
@@ -490,23 +546,23 @@ class MemberDashboard(tk.Frame):
         confirm = messagebox.askyesno("Confirm Booking", f"Would you like to book {room_name} for {price:,.0f} VND/night?")
         
         if confirm:
-            if self.conn and booking_service and hasattr(booking_service, 'create_booking'):
-                try:
-                    booking_service.create_booking(
-                        self.conn,
-                        user_id=self.user["user_id"],
-                        room_type_id=room.get("room_type_id", room.get("id")),
-                        check_in=self.entry_cin.get(),
-                        check_out=self.entry_cout.get()
-                    )
-                except Exception as e:
-                    print(f"[Warning] Booking DB Insert error: {e}")
+            if not self.conn or not booking_service or not hasattr(booking_service, 'create_booking'):
+                messagebox.showerror("Booking Error", "Database connection or booking service is unavailable.")
+                return
 
-            messagebox.showinfo(
-                "Booking Created",
-                "Your booking has been created (Status: Pending Payment).\nPlease open 'My Bookings' to complete payment."
-            )
-            self.show_my_bookings()
+            try:
+                booking = booking_service.create_booking(
+                    self.conn,
+                    user_id=self.user["user_id"],
+                    room_type_id=room.get("room_type_id", room.get("id")),
+                    check_in=self.entry_cin.get(),
+                    check_out=self.entry_cout.get()
+                )
+            except Exception as e:
+                messagebox.showerror("Booking Error", str(e))
+                return
+
+            self._pay_now(booking)
 
     # ============================================================
     # MÀN HÌNH 3: MY ACTIVE BOOKINGS (Đã bổ sung Checked-in)
@@ -855,13 +911,17 @@ class MemberDashboard(tk.Frame):
             selected_method = method_var.get()
             tx_code = f"TXN{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}"
 
-            if self.conn and payment_service and hasattr(payment_service, 'process_payment'):
-                try:
-                    res = payment_service.process_payment(self.conn, booking["booking_id"], selected_method)
-                    if isinstance(res, dict) and "transaction_code" in res:
-                        tx_code = res["transaction_code"]
-                except Exception as e:
-                    print(f"[Warning] Payment DB Sync error: {e}")
+            if not self.conn or not payment_service or not hasattr(payment_service, 'process_payment'):
+                messagebox.showerror("Payment Error", "Database connection or payment service is unavailable.", parent=pay_win)
+                return
+
+            try:
+                res = payment_service.process_payment(self.conn, booking["booking_id"], selected_method)
+                if isinstance(res, dict) and "transaction_code" in res:
+                    tx_code = res["transaction_code"]
+            except Exception as e:
+                messagebox.showerror("Payment Error", str(e), parent=pay_win)
+                return
 
             booking["status"] = "Confirmed"
             pay_win.destroy()
@@ -891,7 +951,11 @@ class MemberDashboard(tk.Frame):
 
         hours_left = (cin - now).total_seconds() / 3600.0
 
-        if hours_left > 48:
+        is_unpaid = booking["status"] == "Pending Payment"
+        if is_unpaid:
+            refund_rate = 0.0
+            policy_msg = "This booking has not been paid, so no refund is applicable."
+        elif hours_left > 48:
             refund_rate = 1.0
             policy_msg = "Cancel more than 48 hours before check-in: 100% refund."
         elif 24 <= hours_left <= 48:
@@ -901,7 +965,7 @@ class MemberDashboard(tk.Frame):
             refund_rate = 0.0
             policy_msg = "Cancel within 24 hours of check-in: 100% fee (no refund)."
 
-        refund_amount = booking['total_price'] * refund_rate
+        refund_amount = 0 if is_unpaid else booking['total_price'] * refund_rate
 
         confirm = messagebox.askyesno(
             "Confirm Booking Cancellation",
@@ -914,12 +978,20 @@ class MemberDashboard(tk.Frame):
         if confirm:
             if self.conn and cancellation_service and hasattr(cancellation_service, 'cancel_booking'):
                 try:
-                    cancellation_service.cancel_booking(self.conn, booking["booking_id"])
+                    result = cancellation_service.cancel_booking(self.conn, booking["booking_id"])
                 except Exception as e:
-                    print(f"[Warning] Cancel booking DB Sync error: {e}")
+                    messagebox.showerror("Cancellation Error", str(e))
+                    return
+            else:
+                messagebox.showerror("Cancellation Error", "Database connection or cancellation service is unavailable.")
+                return
 
             booking["status"] = "Cancelled"
-            messagebox.showinfo("Booking Cancelled", f"Booking cancelled successfully.\nRefund amount: {refund_amount:,.0f} VND.")
+            messagebox.showinfo(
+                "Booking Cancelled",
+                f"Booking cancelled successfully.\n"
+                f"Refund amount: {result['refund_amount']:,.0f} VND."
+            )
             self.show_my_bookings()
 
     def _open_review_dialog(self, booking):

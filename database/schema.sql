@@ -120,7 +120,26 @@ CREATE TABLE payments (
 );
 
 
--- 6. REVIEWS
+-- 6. CANCELLATION HISTORY
+
+CREATE TABLE cancellation_history (
+    cancellation_id INT AUTO_INCREMENT PRIMARY KEY,
+    booking_id INT NOT NULL,
+    canceled_at DATETIME NOT NULL,
+    hours_before_checkin DECIMAL(8,2) NOT NULL,
+    refund_percent DECIMAL(5,2) NOT NULL,
+    refund_amount DECIMAL(12,2) NOT NULL,
+    policy_description VARCHAR(255) NOT NULL,
+
+    CONSTRAINT fk_cancellation_booking
+        FOREIGN KEY (booking_id)
+        REFERENCES bookings(booking_id)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT
+);
+
+
+-- 7. REVIEWS
 
 CREATE TABLE reviews (
     review_id INT AUTO_INCREMENT PRIMARY KEY,
