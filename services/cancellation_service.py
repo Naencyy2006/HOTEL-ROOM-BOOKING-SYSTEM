@@ -1,6 +1,6 @@
 
 
-from datetime import datetime, time
+from datetime import date, datetime, time
 from services import booking_service, payment_service, room_service
 
 
@@ -16,6 +16,7 @@ def calculate_refund(total_price: float, check_in: datetime, now: datetime = Non
     """
     now = now or datetime.now()
     hours_before = (check_in - now).total_seconds() / 3600
+    total_price = float(total_price)
 
     if hours_before > 48:
         percent = 1.0
@@ -35,7 +36,7 @@ def cancel_booking(conn, booking_id: int) -> dict:
     """
         Corresponds to Booking.processCancellation(): boolean.
         Execute the main Cancel Booking use case:
-            1. Check that the booking is Confirmed or Pending Payment.
+            1. Check that the booking is Confirmed, Pending Payment, or Pending.
             2. Check that cancellation is still allowed (before check-in).
             3. Calculate the refund according to policy.
             4. Update the booking to Canceled and the room to Available.
@@ -44,16 +45,23 @@ def cancel_booking(conn, booking_id: int) -> dict:
     booking = booking_service.get_booking(conn, booking_id)
     if booking is None:
         raise CancellationError("Booking not found.")
-    if booking["status"] not in ("Confirmed", "Pending Payment"):
+    status = str(booking["status"]).strip()
+    if status not in ("Confirmed", "Pending Payment", "Pending"):
         raise CancellationError("Only active bookings can be cancelled.")
 
     now = datetime.now()
-    check_in_dt = datetime.combine(booking["check_in"], time(14, 0))
+    check_in = booking["check_in"]
+    if isinstance(check_in, str):
+        check_in = date.fromisoformat(check_in)
+    if isinstance(check_in, datetime):
+        check_in_dt = check_in.replace(hour=14, minute=0, second=0, microsecond=0)
+    else:
+        check_in_dt = datetime.combine(check_in, time(14, 0))
     if now >= check_in_dt:
         raise CancellationError("A booking cannot be cancelled after check-in.")
 
     # An unpaid booking can be canceled but does not generate a refund.
-    refund_total = booking["total_price"] if booking["status"] == "Confirmed" else 0
+    refund_total = booking["total_price"] if status == "Confirmed" else 0
     refund_info = calculate_refund(refund_total, check_in_dt, now)
 
     cursor = conn.cursor()
@@ -73,22 +81,6 @@ def cancel_booking(conn, booking_id: int) -> dict:
         room_service.release_room(conn, booking["room_id"])
 
     cursor = conn.cursor()
-    cursor.execute(
-        """
-        CREATE TABLE IF NOT EXISTS cancellation_history (
-            cancellation_id INT AUTO_INCREMENT PRIMARY KEY,
-            booking_id INT NOT NULL,
-            canceled_at DATETIME NOT NULL,
-            hours_before_checkin DECIMAL(8, 2) NOT NULL,
-            refund_percent DECIMAL(5, 2) NOT NULL,
-            refund_amount DECIMAL(12, 2) NOT NULL,
-            policy_description VARCHAR(255) NOT NULL,
-            CONSTRAINT fk_cancellation_booking
-                FOREIGN KEY (booking_id) REFERENCES bookings(booking_id)
-                ON UPDATE CASCADE ON DELETE RESTRICT
-        )
-        """
-    )
     if refund_info["refund_percent"] == 1.0:
         policy_description = "More than 48 hours before check-in: no cancellation fee."
     elif refund_info["refund_percent"] == 0.5:

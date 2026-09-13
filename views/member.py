@@ -574,10 +574,13 @@ class MemberDashboard(tk.Frame):
         tk.Label(self.content, text="📅 My Active Bookings", bg=COLOR_MAIN_BG, fg=COLOR_TEXT, font=FONT_TITLE).pack(anchor="w", pady=(0, 15))
 
         # Filter to include Checked-in and Pending statuses.
-        bookings = [
-            b for b in self._get_all_member_bookings()
-            if b["status"] in ("Confirmed", "Pending Payment", "Checked-in", "Pending")
-        ]
+        bookings = []
+        closed_statuses = {"completed", "canceled", "cancelled"}
+        for booking in self._get_all_member_bookings():
+            status = str(booking.get("status", "")).strip()
+            if status and status.lower() not in closed_statuses:
+                booking["status"] = status
+                bookings.append(booking)
 
         if not bookings:
             empty_card = tk.Frame(self.content, bg=COLOR_WHITE, highlightbackground=COLOR_BUTTON, highlightthickness=1, padx=20, pady=30)
@@ -638,7 +641,10 @@ class MemberDashboard(tk.Frame):
         actions = tk.Frame(card, bg=COLOR_WHITE)
         actions.pack(fill="x", pady=(10, 0))
 
-        if b["status"] == "Pending Payment":
+        status = str(b.get("status", "")).strip()
+        normalized_status = status.lower()
+
+        if normalized_status in ("pending payment", "pending"):
             tk.Button(
                 actions, text="Pay Now", bg=COLOR_SUCCESS, fg=COLOR_WHITE, font=FONT_BOLD, relief="flat",
                 padx=18, pady=6, cursor="hand2", activebackground="#1B5E20", activeforeground=COLOR_WHITE,
@@ -646,18 +652,24 @@ class MemberDashboard(tk.Frame):
             ).pack(side="right", padx=(5, 0))
 
             tk.Button(
-                actions, text="Cancel Request", bg=COLOR_BUTTON, fg=COLOR_TEXT, font=FONT_NORMAL, relief="flat",
+                actions, text="Cancel Request", bg=COLOR_DANGER, fg=COLOR_WHITE, font=FONT_BOLD, relief="flat",
                 padx=15, pady=6, cursor="hand2", activebackground=COLOR_SIDEBAR, activeforeground=COLOR_TEXT,
                 command=lambda: self._cancel_booking(b)
             ).pack(side="right", padx=5)
-        elif b["status"] == "Confirmed":
+        elif normalized_status == "confirmed":
             tk.Button(
-                actions, text="Cancel Booking", bg=COLOR_DANGER, fg=COLOR_WHITE, font=FONT_BOLD, relief="flat",
+                actions, text="Cancel Request", bg=COLOR_DANGER, fg=COLOR_WHITE, font=FONT_BOLD, relief="flat",
                 padx=18, pady=6, cursor="hand2", activebackground="#9A0007", activeforeground=COLOR_WHITE,
                 command=lambda: self._cancel_booking(b)
             ).pack(side="right")
-        elif b["status"] == "Checked-in":
+        elif normalized_status == "checked-in":
             tk.Label(actions, text="ℹ️ You are currently checked in to this room", bg=COLOR_WHITE, fg=COLOR_INFO, font=FONT_BOLD).pack(side="right")
+        else:
+            tk.Button(
+                actions, text="Cancel Request", bg=COLOR_DANGER, fg=COLOR_WHITE, font=FONT_BOLD, relief="flat",
+                padx=18, pady=6, cursor="hand2", activebackground="#9A0007", activeforeground=COLOR_WHITE,
+                command=lambda: self._cancel_booking(b)
+            ).pack(side="right")
 
     # ============================================================
     # SCREEN 4: BOOKING HISTORY & REVIEWS
@@ -951,7 +963,7 @@ class MemberDashboard(tk.Frame):
 
         hours_left = (cin - now).total_seconds() / 3600.0
 
-        is_unpaid = booking["status"] == "Pending Payment"
+        is_unpaid = booking["status"] in ("Pending Payment", "Pending")
         if is_unpaid:
             refund_rate = 0.0
             policy_msg = "This booking has not been paid, so no refund is applicable."
@@ -965,12 +977,13 @@ class MemberDashboard(tk.Frame):
             refund_rate = 0.0
             policy_msg = "Cancel within 24 hours of check-in: 100% fee (no refund)."
 
-        refund_amount = 0 if is_unpaid else booking['total_price'] * refund_rate
+        total_price = float(booking.get("total_price", 0))
+        refund_amount = 0 if is_unpaid else total_price * refund_rate
 
         confirm = messagebox.askyesno(
             "Confirm Booking Cancellation",
             f"Applicable policy:\n{policy_msg}\n\n"
-            f"• Booking total: {booking['total_price']:,.0f} VND\n"
+            f"• Booking total: {total_price:,.0f} VND\n"
             f"• Refund amount: {refund_amount:,.0f} VND\n\n"
             f"Are you sure you want to cancel this booking?"
         )
