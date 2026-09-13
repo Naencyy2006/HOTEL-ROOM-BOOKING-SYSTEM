@@ -11,11 +11,11 @@ except ImportError:
     HAS_TKCALENDAR = False
 
 
-COLOR_MAIN_BG = "#F5EFFF"   # Nền chính
-COLOR_SIDEBAR = "#E5D9F2"   # Nền card / panel
-COLOR_BUTTON  = "#CDC1FF"   # Nút phụ
-COLOR_ACCENT  = "#A594F9"   # Nút chính / Header
-COLOR_TEXT    = "#3B2F63"   # Chữ tối
+COLOR_MAIN_BG = "#F5EFFF"   # Background
+COLOR_SIDEBAR = "#E5D9F2"   # Card / Panel Background
+COLOR_BUTTON  = "#CDC1FF"   # Secondary Button
+COLOR_ACCENT  = "#A594F9"   # Primary Button / Header
+COLOR_TEXT    = "#3B2F63"   # Text
 COLOR_WHITE   = "#FFFFFF"
 
 FONT_TITLE = ("Arial", 16, "bold")
@@ -198,6 +198,19 @@ class GuestView(tk.Frame):
             messagebox.showerror("Invalid Date Format", "Please enter valid dates (YYYY-MM-DD).")
             return
 
+        min_p = self.txt_min_price.get().strip()
+        max_p = self.txt_max_price.get().strip()
+        if min_p and max_p:
+            try:
+                if float(min_p) > float(max_p):
+                    messagebox.showerror(
+                        "Invalid Price Range",
+                        "Minimum price cannot be greater than maximum price."
+                    )
+                    return
+            except ValueError:
+                pass
+
         # Clear the current room display before loading new search results.
         for item in self.tree.get_children():
             self.tree.delete(item)
@@ -217,12 +230,10 @@ class GuestView(tk.Frame):
             query += " AND capacity >= %s"
             params.append(guest_num)
 
-            min_p = self.txt_min_price.get().strip()
             if min_p.isdigit():
                 query += " AND price_per_night >= %s"
                 params.append(float(min_p))
 
-            max_p = self.txt_max_price.get().strip()
             if max_p.isdigit():
                 query += " AND price_per_night <= %s"
                 params.append(float(max_p))

@@ -418,6 +418,19 @@ class MemberDashboard(tk.Frame):
         self._do_search_rooms()
 
     def _do_search_rooms(self):
+        min_price = self.entry_min_price.get().strip()
+        max_price = self.entry_max_price.get().strip()
+        if min_price and max_price:
+            try:
+                if float(min_price) > float(max_price):
+                    messagebox.showerror(
+                        "Invalid Price Range",
+                        "Minimum price cannot be greater than maximum price."
+                    )
+                    return
+            except ValueError:
+                pass
+
         for w in self.results_container.winfo_children():
             w.destroy()
 
