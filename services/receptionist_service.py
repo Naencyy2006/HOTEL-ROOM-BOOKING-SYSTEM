@@ -43,7 +43,7 @@ class ReceptionistService:
 
     def view_reservations(self, filter_status=None, check_in_date=None, guest_name=None):
         """
-        Xem danh sách tất cả booking slips, hỗ trợ lọc theo trạng thái, ngày check-in hoặc tên khách hàng.
+        View the list of all booking slips, with support for filtering by status, check-in date, or customer name.
         """
         connection = self.db.get_connection()
         if not connection:
@@ -90,27 +90,27 @@ class ReceptionistService:
                               room_type_id, room_id, check_in, check_out, 
                               total_price=None, payment_method="Cash"):
         """
-        Tạo tài khoản nhanh cho khách walk-in, kiểm tra trùng phòng, tạo lịch đặt phòng và thanh toán.
+        Create a quick account for walk-in guests, check for room conflicts, create a booking schedule, and process payment.
         """
         connection = self.db.get_connection()
         if not connection:
             return False, "Database connection failed."
 
-        # Chuyển đổi định dạng ngày nếu là chuỗi
+        # Convert date format if it's a string
         d_in = datetime.strptime(check_in, "%Y-%m-%d").date() if isinstance(check_in, str) else check_in
         d_out = datetime.strptime(check_out, "%Y-%m-%d").date() if isinstance(check_out, str) else check_out
 
         if d_out <= d_in:
             return False, "Check-out date must be after check-in date."
 
-        # 1. Kiểm tra xem loại phòng còn trống trong khoảng ngày này không
+        # 1. Check if the room type is available for these dates.
         if not room_service.is_room_type_available(connection, room_type_id, d_in, d_out):
             connection.close()
             return False, "No available rooms left for the selected room type and dates."
 
         cursor = connection.cursor(dictionary=True)
         try:
-            # 2. Kiểm tra hoặc tạo tài khoản Member mới cho khách
+            # 2. Check or create a new Member account for the guest
             cursor.execute("SELECT user_id FROM users WHERE email = %s", (email,))
             existing_user = cursor.fetchone()
 
@@ -125,7 +125,7 @@ class ReceptionistService:
                 cursor.execute(insert_user_query, (full_name, email, phone, gender, year_of_birth, default_password_hash))
                 user_id = cursor.lastrowid
 
-            # 3. Tính tổng tiền nếu không truyền vào
+            # 3. Calculate the total price if not provided
             if total_price is None or total_price <= 0:
                 rt_info = room_service.get_room_type_info(connection, room_type_id)
                 if not rt_info:
@@ -134,7 +134,7 @@ class ReceptionistService:
                 nights = (d_out - d_in).days
                 total_price = nights * float(rt_info["price_per_night"])
 
-            # 4. Kiểm tra phòng vật lý cụ thể (nếu được chọn)
+            # 4. Check for a specific physical room (if selected)
             if room_id:
                 cursor.execute("SELECT room_type_id, status FROM rooms WHERE room_number = %s", (room_id,))
                 room = cursor.fetchone()
@@ -145,7 +145,7 @@ class ReceptionistService:
                 if room["status"] == "Maintenance":
                     return False, f"Room {room_id} is currently under maintenance."
 
-                # Kiểm tra va chạm lịch đặt phòng khác (Overlap Check)
+                # Check for booking conflicts (Overlap Check)
                 overlap_query = """
                     SELECT booking_id FROM bookings
                     WHERE room_id = %s 
@@ -156,7 +156,7 @@ class ReceptionistService:
                 if cursor.fetchone():
                     return False, f"Room {room_id} is already booked for the selected dates."
 
-            # 5. Thêm bản ghi booking mới (Trạng thái Confirmed)
+            # 5. Add new booking record (Status: Confirmed)
             insert_booking_query = """
                 INSERT INTO bookings (user_id, room_id, room_type_id, check_in, check_out, total_price, status)
                 VALUES (%s, %s, %s, %s, %s, %s, 'Confirmed')
@@ -164,7 +164,7 @@ class ReceptionistService:
             cursor.execute(insert_booking_query, (user_id, room_id, room_type_id, d_in, d_out, total_price))
             booking_id = cursor.lastrowid
 
-            # 6. Ghi nhận giao dịch thanh toán
+            # 6. Record the payment transaction
             insert_payment_query = """
                 INSERT INTO payments (booking_id, amount, payment_method, transaction_code, status)
                 VALUES (%s, %s, %s, %s, 'Paid')
@@ -172,7 +172,7 @@ class ReceptionistService:
             transaction_code = f"WALKIN-{booking_id}-{datetime.now().strftime('%Y%m%d%H%M')}"
             cursor.execute(insert_payment_query, (booking_id, total_price, payment_method, transaction_code))
 
-            # 7. Cập nhật trạng thái phòng thành Occupied nếu nhận phòng ngay hôm nay
+            # 7. Update room status to Occupied if checking in today
             today = date.today()
             if room_id and d_in == today:
                 room_service.update_room_status(connection, room_id, "Occupied")
@@ -189,8 +189,8 @@ class ReceptionistService:
 
     def process_check_in(self, booking_id, room_number=None):
         """
-        Xử lý thủ tục Check-in: Gán số phòng vật lý, chuyển trạng thái Booking thành 'Checked-in'
-        và chuyển trạng thái Phòng thành 'Occupied'.
+        Process the check-in procedure: Assign a physical room number, update the booking status to 'Checked-in'
+        and update the room status to 'Occupied'.
         """
         connection = self.db.get_connection()
         if not connection:
@@ -223,7 +223,7 @@ class ReceptionistService:
             if room["status"] != "Available":
                 return False, f"Room {target_room} is currently '{room['status']}' and cannot be occupied."
 
-            # Cập nhật booking: Gán room_id và đổi status -> Checked-in
+            # Booking update: Assign room_id and change status to "Checked-in".
             update_booking_query = """
                 UPDATE bookings 
                 SET room_id = %s, status = 'Checked-in' 
@@ -231,7 +231,7 @@ class ReceptionistService:
             """
             cursor.execute(update_booking_query, (target_room, booking_id))
 
-            # Cập nhật phòng vật lý -> Occupied thông qua room_service
+            # Update the physical room status to "Occupied" through room_service
             room_service.update_room_status(connection, target_room, "Occupied")
 
             connection.commit()
@@ -246,8 +246,8 @@ class ReceptionistService:
 
     def process_check_out(self, booking_id):
         """
-        Xử lý thủ tục Check-out: Chuyển trạng thái Booking thành 'Completed'
-        và trả trạng thái Phòng vật lý về 'Available'.
+        Process the check-out procedure: Update the booking status to 'Completed'
+        and update the physical room status to 'Available'.
         """
         connection = self.db.get_connection()
         if not connection:
@@ -267,11 +267,11 @@ class ReceptionistService:
 
             room_number = booking.get("room_id")
 
-            # Cập nhật status booking -> Completed
+            # Update booking status -> Completed
             update_booking_query = "UPDATE bookings SET status = 'Completed' WHERE booking_id = %s"
             cursor.execute(update_booking_query, (booking_id,))
 
-            # Trả phòng về trạng thái -> Available thông qua room_service
+            # Return room to 'Available' status through room_service
             if room_number:
                 room_service.release_room(connection, room_number)
 
